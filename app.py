@@ -88,6 +88,37 @@ if 'my_roster' not in st.session_state:
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
 st.caption("Custom Projections, Dynamic VORP & Live Draft Scarcity Co-Pilot")
 
+# Global Master Processing for Base Rankings
+if players_df is not None:
+    num_teams = 12
+    start_qb, start_rb, start_wr, start_te, start_flex, start_op = 1, 2, 2, 0, 1, 1
+    
+    qb_cutoff = int(num_teams * (start_qb + start_op * 0.8))
+    rb_cutoff = int(num_teams * (start_rb + start_flex * 0.4))
+    wr_cutoff = int(num_teams * (start_wr + start_flex * 0.5 + (1 if start_te == 0 else 0) * 0.1))
+    te_cutoff = wr_cutoff
+    
+    qb_base = players_df[players_df['Pos'] == 'QB'].iloc[min(qb_cutoff, len(players_df[players_df['Pos']=='QB'])-1)]['FPS']
+    rb_base = players_df[players_df['Pos'] == 'RB'].iloc[min(rb_cutoff, len(players_df[players_df['Pos']=='RB'])-1)]['FPS']
+    wr_base = players_df[players_df['Pos'] == 'WR'].iloc[min(wr_cutoff, len(players_df[players_df['Pos']=='WR'])-1)]['FPS']
+    te_base = wr_base
+    
+    baselines = {'QB': qb_base, 'RB': rb_base, 'WR': wr_base, 'TE': te_base}
+    
+    df_calc = players_df.copy()
+    df_calc['Baseline_FPS'] = df_calc['Pos'].map(baselines)
+    df_calc['True_VORP'] = df_calc['FPS'] - df_calc['Baseline_FPS']
+    
+    if fp_df is not None:
+        df_calc = pd.merge(df_calc, fp_df[['Clean_FP_Name', 'RK']], left_on='Clean_Player', right_on='Clean_FP_Name', how='left')
+        df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
+        if 'Clean_FP_Name' in df_calc.columns:
+            df_calc.drop(columns=['Clean_FP_Name'], inplace=True)
+            
+    df_calc = df_calc.sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
+    df_calc['True_Rank'] = df_calc.index + 1
+    df_calc['Rank_Surplus'] = df_calc['FP_Rank'] - df_calc['True_Rank']
+
 # --- SIDEBAR: LIVE DRAFT LOG & MY SQUAD ---
 with st.sidebar:
     st.header("📋 Live Draft Control Center")
@@ -130,32 +161,6 @@ if players_df is not None:
     with tabs[0]:
         st.header("⚡ Live Draft Scarcity & Opportunity Cost Monitor")
         
-        num_teams = 12
-        start_qb, start_rb, start_wr, start_te, start_flex, start_op = 1, 2, 2, 0, 1, 1
-        
-        qb_cutoff = int(num_teams * (start_qb + start_op * 0.8))
-        rb_cutoff = int(num_teams * (start_rb + start_flex * 0.4))
-        wr_cutoff = int(num_teams * (start_wr + start_flex * 0.5 + (1 if start_te == 0 else 0) * 0.1))
-        te_cutoff = wr_cutoff
-        
-        qb_base = players_df[players_df['Pos'] == 'QB'].iloc[min(qb_cutoff, len(players_df[players_df['Pos']=='QB'])-1)]['FPS']
-        rb_base = players_df[players_df['Pos'] == 'RB'].iloc[min(rb_cutoff, len(players_df[players_df['Pos']=='RB'])-1)]['FPS']
-        wr_base = players_df[players_df['Pos'] == 'WR'].iloc[min(wr_cutoff, len(players_df[players_df['Pos']=='WR'])-1)]['FPS']
-        te_base = wr_base
-        
-        baselines = {'QB': qb_base, 'RB': rb_base, 'WR': wr_base, 'TE': te_base}
-        
-        df_calc = players_df.copy()
-        df_calc['Baseline_FPS'] = df_calc['Pos'].map(baselines)
-        df_calc['True_VORP'] = df_calc['FPS'] - df_calc['Baseline_FPS']
-        
-        # Merge FantasyPros using Clean Name
-        if fp_df is not None:
-            df_calc = pd.merge(df_calc, fp_df[['Clean_FP_Name', 'RK']], left_on='Clean_Player', right_on='Clean_FP_Name', how='left')
-            df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
-            if 'Clean_FP_Name' in df_calc.columns:
-                df_calc.drop(columns=['Clean_FP_Name'], inplace=True)
-            
         # Filter out drafted players
         df_undrafted = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
         df_undrafted['Draft_Rank'] = df_undrafted.index + 1
@@ -349,7 +354,7 @@ if players_df is not None:
                 
                 # Retrieve ranks & surplus
                 c_info = df_calc[df_calc['Player'] == c_name]
-                c_rank = int(c_info['Draft_Rank'].values[0]) if not c_info.empty and 'Draft_Rank' in c_info.columns else 999
+                c_rank = int(c_info['True_Rank'].values[0]) if not c_info.empty and 'True_Rank' in c_info.columns else 999
                 fp_rank = int(c_info['FP_Rank'].values[0]) if not c_info.empty and 'FP_Rank' in c_info.columns and pd.notna(c_info['FP_Rank'].values[0]) else 999
                 
                 surplus_val = (fp_rank - c_rank) if fp_rank < 999 else "N/A"
@@ -394,6 +399,10 @@ if players_df is not None:
             p_data = df_calc[df_calc['Player'] == search_player]
             if not p_data.empty:
                 row = p_data.iloc[0]
+                
+                # Fetch Monte Carlo metrics
+                mc_p = run_monte_carlo_sims(p_data).iloc[0]
+                
                 m1, m2, m3, m4 = st.columns(4)
                 
                 fp_rank_val = int(row['FP_Rank']) if 'FP_Rank' in row and pd.notna(row['FP_Rank']) else "N/A"
@@ -402,8 +411,8 @@ if players_df is not None:
                 
                 m1.metric("Custom True Rank", true_rank_val)
                 m2.metric("FantasyPros Rank", fp_rank_val)
-                m3.metric("Rank Surplus", surplus_val)
-                m4.metric("Baseline FPS", round(row['FPS'], 1))
+                m3.metric("Rank Surplus", f"+{surplus_val}" if isinstance(surplus_val, int) and surplus_val > 0 else surplus_val)
+                m4.metric("Baseline FPS (90th % Ceiling)", f"{round(row['FPS'], 1)} ({round(mc_p['90th_Ceiling'], 1)})")
                 
                 if isinstance(surplus_val, (int, float)):
                     if surplus_val > 15:
