@@ -107,6 +107,9 @@ if players_df is not None:
         if team_data:
             sel_team = st.selectbox("Select Team to Simulate", list(team_data.keys()), index=5)
             df_t = team_data[sel_team].copy()
+            df_t['TGT SHARE'] = pd.to_numeric(df_t['TGT SHARE'], errors='coerce')
+            df_t['RUSH SHARE'] = pd.to_numeric(df_t['RUSH SHARE'], errors='coerce')
+            
             df_players_team = df_t[df_t['PLAYER'].notna() & (df_t['PLAYER'] != 'TEAM NUMBERS')].copy()
             
             st.subheader(f"⚙️ Simulation Controls for {sel_team}")
@@ -187,7 +190,16 @@ if players_df is not None:
                 
         if qb_team and qb_team in team_data:
             df_team = team_data[qb_team].copy()
-            df_catchers = df_team[(df_team['POS'].isin(['WR', 'TE', 'RB'])) & (df_team['TGT SHARE'] > 0.02)].copy()
+            
+            # Convert shares to numeric safely
+            df_team['TGT SHARE'] = pd.to_numeric(df_team['TGT SHARE'], errors='coerce')
+            df_team['RUSH SHARE'] = pd.to_numeric(df_team['RUSH SHARE'], errors='coerce')
+            
+            df_catchers = df_team[
+                (df_team['POS'].isin(['WR', 'TE', 'RB'])) & 
+                (df_team['TGT SHARE'].notna()) & 
+                (df_team['TGT SHARE'] > 0.02)
+            ].copy()
             
             qb_fps = (qb_row['PASS YARDS']*0.04 + qb_row['PASS TD']*6.0 + qb_row['COMP']*0.1 - qb_row['INT']*1.0 + qb_row['RUSH YARDS']*0.1 + qb_row['RUSH TD']*6.0) if pd.notna(qb_row['PASS YARDS']) else 0.0
             
@@ -234,7 +246,7 @@ if players_df is not None:
             # Multi-Player Double Stack Calculator
             st.markdown("---")
             st.subheader("⚡ Double-Stack Multiplier Calculator")
-            selected_catchers = st.multiselect("Select 2 Catcher Partners for Double Stack", df_catchers['PLAYER'].tolist(), default=df_catchers['PLAYER'].tolist()[:2])
+            selected_catchers = st.multiselect("Select 2 Catcher Partners for Double Stack", df_catchers['PLAYER'].tolist(), default=df_catchers['PLAYER'].tolist()[:2] if len(df_catchers) >= 2 else df_catchers['PLAYER'].tolist())
             
             if len(selected_catchers) >= 2:
                 df_sub = df_stacks[df_stacks['Pass Catcher'].isin(selected_catchers)]
