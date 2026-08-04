@@ -4,6 +4,9 @@ import numpy as np
 import os
 import json
 
+# Import new standalone trade analyzer module
+from trade_analyzer import render_trade_analyzer
+
 st.set_page_config(
     page_title="FFB Arbitrage & Live Draft Engine", 
     page_icon="🏈", 
@@ -191,7 +194,8 @@ if players_df is not None:
         "🎯 True VORP Board", 
         "🌊 Volumetric Ripple Engine", 
         "⚡ QB Stacking Matrix", 
-        "🕵️ Opponent Keeper Spy"
+        "🕵️ Opponent Keeper Spy",
+        "🤝 Preseason Trade Spy"
     ])
 
     # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & ARBITRAGE CALCULATOR ---
@@ -509,3 +513,8 @@ if players_df is not None:
                         st.warning(f"⚠️ **OVERVALUED BY FP:** FantasyPros overvalues {search_player} relative to your scoring. Great player to trade AWAY or let them keep.")
                     else:
                         st.info(f"⚖️ **FAIR MARKET:** {search_player} is priced similarly across both systems.")
+
+    # --- TAB 5: PRESEASON TRADE SPY ---
+    with tabs[5]:
+        df_undrafted_calc = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].reset_index(drop=True)
+        render_trade_analyzer(df_calc, df_undrafted_calc, run_monte_carlo_sims)
