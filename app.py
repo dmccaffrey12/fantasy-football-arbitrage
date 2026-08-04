@@ -247,7 +247,8 @@ if players_df is not None:
         st.markdown("Evaluate whether to draft a target player **now** or **wait** until your next turn to harvest ranking surplus.")
         
         calc_col1, calc_col2 = st.columns(2)
-        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:30], index=min(4, len(df_undrafted)-1))
+        # UPDATED: Sliced to top 150 undrafted players
+        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:150], index=min(4, len(df_undrafted)-1))
         next_pick_num = calc_col2.number_input("Your Next Draft Pick #", min_value=1, max_value=200, value=34, step=1)
         
         if target_player_sel:
