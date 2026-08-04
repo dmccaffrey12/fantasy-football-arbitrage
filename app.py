@@ -9,6 +9,16 @@ st.set_page_config(
     layout="wide"
 )
 
+# Helper function to clean suffixes for robust matching
+def clean_player_name(name):
+    if not isinstance(name, str):
+        return ""
+    name_clean = name.strip()
+    for suffix in [' III', ' II', ' Jr.', ' Sr.', ' Jr', ' Sr']:
+        if name_clean.endswith(suffix):
+            name_clean = name_clean[:-len(suffix)]
+    return name_clean.strip().lower()
+
 @st.cache_data
 def load_data():
     excel_path = '2026-FFB-Projections-0803.xlsx'
@@ -25,6 +35,7 @@ def load_data():
     players = ovr[['OVERALL PLAYER', 'POS RK', 'BYE.4', 'Custom']].dropna().copy()
     players.columns = ['Player', 'Pos_RK', 'Bye', 'FPS']
     players['Pos'] = players['Pos_RK'].str.extract('([A-Z]+)')
+    players['Clean_Player'] = players['Player'].apply(clean_player_name)
     
     # Load Team Projections
     team_sheets = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC', 'LV', 'LAC', 'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WSH']
@@ -39,6 +50,7 @@ def load_data():
     fp_df = None
     if os.path.exists(fp_path):
         fp_df = pd.read_csv(fp_path)
+        fp_df['Clean_FP_Name'] = fp_df['PLAYER NAME'].apply(clean_player_name)
         
     return players, team_data, fp_df
 
@@ -80,7 +92,6 @@ st.caption("Custom Projections, Dynamic VORP & Live Draft Scarcity Co-Pilot")
 with st.sidebar:
     st.header("📋 Live Draft Control Center")
     
-    # Fast Player Cross-Off
     all_player_names = players_df['Player'].tolist() if players_df is not None else []
     
     drafted_input = st.multiselect(
@@ -119,7 +130,6 @@ if players_df is not None:
     with tabs[0]:
         st.header("⚡ Live Draft Scarcity & Opportunity Cost Monitor")
         
-        # Calculate Base Engine Rules
         num_teams = 12
         start_qb, start_rb, start_wr, start_te, start_flex, start_op = 1, 2, 2, 0, 1, 1
         
@@ -139,16 +149,20 @@ if players_df is not None:
         df_calc['Baseline_FPS'] = df_calc['Pos'].map(baselines)
         df_calc['True_VORP'] = df_calc['FPS'] - df_calc['Baseline_FPS']
         
+        # Merge FantasyPros using Clean Name
+        if fp_df is not None:
+            df_calc = pd.merge(df_calc, fp_df[['Clean_FP_Name', 'RK']], left_on='Clean_Player', right_on='Clean_FP_Name', how='left')
+            df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
+            df_calc.drop(columns=['Clean_FP_Name'], inplace=False)
+            
         # Filter out drafted players
         df_undrafted = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
         df_undrafted['Draft_Rank'] = df_undrafted.index + 1
         
-        if fp_df is not None:
-            df_undrafted = pd.merge(df_undrafted, fp_df[['PLAYER NAME', 'RK']], left_on='Player', right_on='PLAYER NAME', how='left')
-            df_undrafted.rename(columns={'RK': 'FP_Rank'}, inplace=True)
+        if 'FP_Rank' in df_undrafted.columns:
             df_undrafted['Rank_Surplus'] = df_undrafted['FP_Rank'] - df_undrafted['Draft_Rank']
             
-        # Positional Scarcity Heatmap Metrics
+        # Positional Scarcity Metrics
         st.subheader("📊 Position Supply & Tier Cliff Analysis")
         col_q, col_r, col_w, col_t = st.columns(4)
         
@@ -161,7 +175,6 @@ if players_df is not None:
                 top_player = pos_pool.iloc[0]['Player']
                 top_vorp = round(pos_pool.iloc[0]['True_VORP'], 1)
                 
-                # Calculate cliff 5 picks deep
                 cliff_depth = min(5, len(pos_pool) - 1)
                 next_vorp = round(pos_pool.iloc[cliff_depth]['True_VORP'], 1)
                 cliff_delta = round(top_vorp - next_vorp, 1)
@@ -176,7 +189,6 @@ if players_df is not None:
                 if cliff_delta > 20.0:
                     scarcity_alerts.append(f"⚠️ **STEEP CLIFF AT {pos_code}:** Value drops **{cliff_delta} VORP** over the next 5 picks after **{top_player}**!")
                     
-        # Render Scarcity Alerts
         if scarcity_alerts:
             for alert in scarcity_alerts:
                 st.warning(alert)
@@ -219,9 +231,7 @@ if players_df is not None:
         df_tv = df_tv.sort_values(by='Sort_Metric', ascending=False).reset_index(drop=True)
         df_tv['True_Rank'] = df_tv.index + 1
         
-        if fp_df is not None:
-            df_tv = pd.merge(df_tv, fp_df[['PLAYER NAME', 'RK']], left_on='Player', right_on='PLAYER NAME', how='left')
-            df_tv.rename(columns={'RK': 'FP_Rank'}, inplace=True)
+        if 'FP_Rank' in df_tv.columns:
             df_tv['Rank_Surplus'] = df_tv['FP_Rank'] - df_tv['True_Rank']
             
         st.dataframe(
