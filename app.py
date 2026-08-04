@@ -125,6 +125,7 @@ with st.sidebar:
     
     all_player_names = players_df['Player'].tolist() if players_df is not None else []
     
+    # Cross off drafted players across the league
     drafted_input = st.multiselect(
         "Cross Off Drafted Players", 
         all_player_names, 
@@ -135,9 +136,11 @@ with st.sidebar:
     
     st.markdown("---")
     st.subheader("🛡️ My Drafted Squad")
+    
+    # Full list used here so dropdown is immediately active
     my_squad_input = st.multiselect(
         "Add Player to My Team",
-        st.session_state.drafted_all,
+        all_player_names,
         default=st.session_state.my_roster,
         key="my_roster_selector"
     )
