@@ -153,7 +153,8 @@ if players_df is not None:
         if fp_df is not None:
             df_calc = pd.merge(df_calc, fp_df[['Clean_FP_Name', 'RK']], left_on='Clean_Player', right_on='Clean_FP_Name', how='left')
             df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
-            df_calc.drop(columns=['Clean_FP_Name'], inplace=False)
+            if 'Clean_FP_Name' in df_calc.columns:
+                df_calc.drop(columns=['Clean_FP_Name'], inplace=True)
             
         # Filter out drafted players
         df_undrafted = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
@@ -326,6 +327,15 @@ if players_df is not None:
             
             qb_fps = (qb_row['PASS YARDS']*0.04 + qb_row['PASS TD']*6.0 + qb_row['COMP']*0.1 - qb_row['INT']*1.0 + qb_row['RUSH YARDS']*0.1 + qb_row['RUSH TD']*6.0) if pd.notna(qb_row['PASS YARDS']) else 0.0
             
+            st.markdown(f"### 🎯 Team Stack Dashboard: **{sel_qb} ({qb_team})**")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("QB Projected Points", round(qb_fps, 1))
+            m2.metric("Projected Pass Attempts", int(qb_row['PASS ATT']) if pd.notna(qb_row['PASS ATT']) else "N/A")
+            m3.metric("Projected Pass TDs", round(qb_row['PASS TD'], 1) if pd.notna(qb_row['PASS TD']) else "N/A")
+            
+            st.markdown("---")
+            st.subheader(f"Pass Catcher Portfolio Options for {sel_qb}")
+            
             stack_data = []
             for idx, c_row in df_catchers.iterrows():
                 c_name = c_row['PLAYER']
@@ -335,19 +345,45 @@ if players_df is not None:
                 recs = c_row['REC'] if pd.notna(c_row['REC']) else 0.0
                 
                 c_fps = recs*0.5 + rec_yds*0.1 + rec_tds*6.0
+                stack_total = qb_fps + c_fps
                 
+                # Retrieve ranks & surplus
                 c_info = df_calc[df_calc['Player'] == c_name]
-                c_rank = int(c_info.index[0]) + 1 if not c_info.empty else 999
+                c_rank = int(c_info['Draft_Rank'].values[0]) if not c_info.empty and 'Draft_Rank' in c_info.columns else 999
+                fp_rank = int(c_info['FP_Rank'].values[0]) if not c_info.empty and 'FP_Rank' in c_info.columns and pd.notna(c_info['FP_Rank'].values[0]) else 999
+                
+                surplus_val = (fp_rank - c_rank) if fp_rank < 999 else "N/A"
                 
                 stack_data.append({
                     'Pass Catcher': c_name,
                     'Pos': c_row['POS'],
                     'Target Share': f"{round(tgt_share*100, 1)}%",
                     'Catcher FPS': round(c_fps, 1),
-                    'Combined Stack FPS': round(qb_fps + c_fps, 1)
+                    'Combined Stack FPS': round(stack_total, 1),
+                    'Custom True Rank': c_rank if c_rank < 999 else "N/A",
+                    'FP Cost Rank': fp_rank if fp_rank < 999 else "N/A",
+                    'Arbitrage Surplus': surplus_val
                 })
                 
-            st.dataframe(pd.DataFrame(stack_data).sort_values(by='Combined Stack FPS', ascending=False), use_container_width=True)
+            df_stacks = pd.DataFrame(stack_data).sort_values(by='Combined Stack FPS', ascending=False)
+            st.dataframe(df_stacks, use_container_width=True)
+            
+            # Double Stack Calculator
+            st.markdown("---")
+            st.subheader("⚡ Double-Stack Multiplier Calculator")
+            selected_catchers = st.multiselect("Select 2 Catcher Partners for Double Stack", df_catchers['PLAYER'].tolist(), default=df_catchers['PLAYER'].tolist()[:2] if len(df_catchers) >= 2 else df_catchers['PLAYER'].tolist())
+            
+            if len(selected_catchers) >= 2:
+                df_sub = df_stacks[df_stacks['Pass Catcher'].isin(selected_catchers)]
+                combined_tgt_share = df_catchers[df_catchers['PLAYER'].isin(selected_catchers)]['TGT SHARE'].sum()
+                double_stack_fps = qb_fps + sum(df_sub['Catcher FPS'])
+                
+                col_ds1, col_ds2, col_ds3 = st.columns(3)
+                col_ds1.metric("Double-Stack Total Points", round(double_stack_fps, 1))
+                col_ds2.metric("Target Capture Rate", f"{round(combined_tgt_share*100, 1)}%")
+                col_ds3.metric("Pass TD Capture Rate", "~85-90%")
+                
+                st.success(f"🔥 Holding {sel_qb} + {', '.join(selected_catchers)} captures **{round(combined_tgt_share*100, 1)}%** of {qb_team}'s entire passing volume!")
 
     # --- TAB 4: OPPONENT KEEPER SPY ---
     with tabs[4]:
@@ -358,7 +394,21 @@ if players_df is not None:
             p_data = df_calc[df_calc['Player'] == search_player]
             if not p_data.empty:
                 row = p_data.iloc[0]
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Custom Baseline FPS", round(row['FPS'], 1))
-                m2.metric("True VORP", round(row['True_VORP'], 1))
-                m3.metric("Positional Rank", row['Pos_RK'])
+                m1, m2, m3, m4 = st.columns(4)
+                
+                fp_rank_val = int(row['FP_Rank']) if 'FP_Rank' in row and pd.notna(row['FP_Rank']) else "N/A"
+                true_rank_val = int(row['True_Rank']) if 'True_Rank' in row and pd.notna(row['True_Rank']) else "N/A"
+                surplus_val = int(row['Rank_Surplus']) if 'Rank_Surplus' in row and pd.notna(row['Rank_Surplus']) else "N/A"
+                
+                m1.metric("Custom True Rank", true_rank_val)
+                m2.metric("FantasyPros Rank", fp_rank_val)
+                m3.metric("Rank Surplus", surplus_val)
+                m4.metric("Baseline FPS", round(row['FPS'], 1))
+                
+                if isinstance(surplus_val, (int, float)):
+                    if surplus_val > 15:
+                        st.success(f"🔥 **TRADE TARGET / BUY LOW:** FantasyPros ranks {search_player} much later than your custom model (Surplus: +{surplus_val} picks).")
+                    elif surplus_val < -15:
+                        st.warning(f"⚠️ **OVERVALUED BY FP:** FantasyPros overvalues {search_player} relative to your scoring. Great player to trade AWAY or let them keep.")
+                    else:
+                        st.info(f"⚖️ **FAIR MARKET:** {search_player} is priced similarly across both systems.")
