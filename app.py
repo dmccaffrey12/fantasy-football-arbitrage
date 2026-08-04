@@ -309,7 +309,7 @@ if players_df is not None:
     with tabs[3]:
         st.header("3. QB-Pass Catcher Correlation & Portfolio Stacking Matrix")
         qbs = players_df[players_df['Pos'] == 'QB']['Player'].tolist()
-        sel_qb = st.selectbox("Select Starting QB", qbs[:25], index=0, key="sm_qb")
+        sel_qb = st.selectbox("Select Starting QB", qbs, index=0, key="sm_qb")
         
         qb_team = None
         qb_row = None
