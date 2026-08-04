@@ -2,12 +2,34 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import json
 
 st.set_page_config(
     page_title="FFB Arbitrage & Live Draft Engine", 
     page_icon="🏈", 
     layout="wide"
 )
+
+STATE_FILE = 'draft_state.json'
+
+# Helper function to save draft state to disk
+def save_draft_state():
+    state_data = {
+        'drafted_all': st.session_state.drafted_all,
+        'my_roster': st.session_state.my_roster
+    }
+    with open(STATE_FILE, 'w') as f:
+        json.dump(state_data, f)
+
+# Helper function to load draft state from disk
+def load_draft_state():
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {'drafted_all': [], 'my_roster': []}
 
 # Helper function to clean suffixes for robust matching
 def clean_player_name(name):
@@ -79,11 +101,12 @@ def run_monte_carlo_sims(df, n_sims=2000):
         
     return pd.DataFrame(results)
 
-# Session State Initialization for Live Draft Tracking
+# Initialize Session State from Disk on First Load
+saved_state = load_draft_state()
 if 'drafted_all' not in st.session_state:
-    st.session_state.drafted_all = []
+    st.session_state.drafted_all = saved_state.get('drafted_all', [])
 if 'my_roster' not in st.session_state:
-    st.session_state.my_roster = []
+    st.session_state.my_roster = saved_state.get('my_roster', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
 st.caption("Custom Projections, Dynamic VORP & Live Draft Scarcity Co-Pilot")
@@ -127,12 +150,14 @@ with st.sidebar:
     
     # Cross off drafted players across the league
     drafted_input = st.multiselect(
-        "Cross Off Drafted Players", 
+        "Cross Off Drafted Players / Keepers", 
         all_player_names, 
         default=st.session_state.drafted_all,
         key="drafted_selector"
     )
-    st.session_state.drafted_all = drafted_input
+    if drafted_input != st.session_state.drafted_all:
+        st.session_state.drafted_all = drafted_input
+        save_draft_state()
     
     st.markdown("---")
     st.subheader("🛡️ My Drafted Squad")
@@ -143,11 +168,21 @@ with st.sidebar:
         default=st.session_state.my_roster,
         key="my_roster_selector"
     )
-    st.session_state.my_roster = my_squad_input
-    
-    if st.button("🔄 Reset Draft State"):
+    if my_squad_input != st.session_state.my_roster:
+        st.session_state.my_roster = my_squad_input
+        save_draft_state()
+        
+    st.markdown("---")
+    col_btn1, col_btn2 = st.columns(2)
+    if col_btn1.button("💾 Save State"):
+        save_draft_state()
+        st.success("Saved to disk!")
+        
+    if col_btn2.button("🔄 Reset State"):
         st.session_state.drafted_all = []
         st.session_state.my_roster = []
+        if os.path.exists(STATE_FILE):
+            os.remove(STATE_FILE)
         st.rerun()
 
 if players_df is not None:
