@@ -137,7 +137,6 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🛡️ My Drafted Squad")
     
-    # Full list used here so dropdown is immediately active
     my_squad_input = st.multiselect(
         "Add Player to My Team",
         all_player_names,
@@ -160,7 +159,7 @@ if players_df is not None:
         "🕵️ Opponent Keeper Spy"
     ])
 
-    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR ---
+    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & ARBITRAGE CALCULATOR ---
     with tabs[0]:
         st.header("⚡ Live Draft Scarcity & Opportunity Cost Monitor")
         
@@ -204,6 +203,57 @@ if players_df is not None:
         else:
             st.success("✅ Positional supply is balanced across remaining tiers.")
             
+        st.markdown("---")
+        st.subheader("⚖️ Arbitrage vs. Snipe Risk Calculator")
+        st.markdown("Evaluate whether to draft a target player **now** or **wait** until your next turn to harvest ranking surplus.")
+        
+        calc_col1, calc_col2 = st.columns(2)
+        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:30], index=min(4, len(df_undrafted)-1))
+        next_pick_num = calc_col2.number_input("Your Next Draft Pick #", min_value=1, max_value=200, value=34, step=1)
+        
+        if target_player_sel:
+            p_data = df_undrafted[df_undrafted['Player'] == target_player_sel].iloc[0]
+            target_fp_rank = p_data['FP_Rank'] if pd.notna(p_data['FP_Rank']) else p_data['Draft_Rank']
+            target_true_rank = p_data['Draft_Rank']
+            target_vorp = p_data['True_VORP']
+            
+            fp_buffer = target_fp_rank - next_pick_num
+            
+            # Survival Probability Calculation
+            if fp_buffer >= 10:
+                survival_prob = min(95, 75 + int(fp_buffer * 1.5))
+            elif fp_buffer >= 0:
+                survival_prob = max(40, 50 + int(fp_buffer * 2.5))
+            else:
+                survival_prob = max(5, 40 + int(fp_buffer * 3.0))
+                
+            # Safety Net Alternatives Search around next_pick_num
+            safety_net_pool = df_undrafted[
+                (df_undrafted['Player'] != target_player_sel) & 
+                (df_undrafted['True_VORP'] >= target_vorp - 20.0) &
+                (df_undrafted['FP_Rank'] >= next_pick_num - 8)
+            ]
+            safety_count = len(safety_net_pool)
+            
+            # Metrics display
+            m_s1, m_s2, m_s3, m_s4 = st.columns(4)
+            m_s1.metric("Target FP ECR Rank", int(target_fp_rank) if pd.notna(target_fp_rank) else "N/A")
+            m_s2.metric("Target Custom Rank", int(target_true_rank))
+            m_s3.metric("Estimated Survival Odds", f"{survival_prob}%")
+            m_s4.metric("Safety Net Alternatives", f"{safety_count} Players")
+            
+            # Recommendation Logic
+            if survival_prob >= 70 and safety_count >= 2:
+                st.success(f"🟢 **RECOMMENDATION: SAFE TO WAIT.** {target_player_sel} has high survival odds ({survival_prob}%) to reach Pick {next_pick_num}, and you have {safety_count} strong safety net alternatives. Wait and harvest surplus!")
+            elif survival_prob >= 45 or safety_count >= 1:
+                st.warning(f"🟡 **RECOMMENDATION: MODERATE SNIPE RISK.** {target_player_sel} has {survival_prob}% survival odds to reach Pick {next_pick_num}. If you pass, your backup options are: {', '.join(safety_net_pool['Player'].tolist()[:3]) if safety_count > 0 else 'None'}.")
+            else:
+                st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at high risk of being sniped before Pick {next_pick_num} (Survival: {survival_prob}%). Pull the trigger now if you want him.")
+                
+            if safety_count > 0:
+                st.markdown("##### 🛡️ Safety Net Alternatives Available at Your Next Pick Slot:")
+                st.dataframe(safety_net_pool[['Draft_Rank', 'Player', 'Pos', 'FPS', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].head(5), use_container_width=True)
+
         st.markdown("---")
         st.subheader("🔥 Top 25 Best Available Players")
         st.dataframe(
