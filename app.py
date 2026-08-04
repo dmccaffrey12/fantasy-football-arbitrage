@@ -16,22 +16,33 @@ def load_data():
     
     if not os.path.exists(excel_path):
         st.error(f"File {excel_path} not found in repository root!")
-        return None, None
+        return None, None, None
         
     xls = pd.ExcelFile(excel_path)
     ovr = pd.read_excel(xls, 'OVR & VORP Ranks')
     
+    # Load Overall Ranks
     players = ovr[['OVERALL PLAYER', 'POS RK', 'BYE.4', 'Custom']].dropna().copy()
     players.columns = ['Player', 'Pos_RK', 'Bye', 'FPS']
     players['Pos'] = players['Pos_RK'].str.extract('([A-Z]+)')
     
+    # Load Team Projections
+    team_sheets = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC', 'LV', 'LAC', 'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WSH']
+    team_data = {}
+    for t in team_sheets:
+        try:
+            df_t = pd.read_excel(xls, t)
+            team_data[t] = df_t
+        except Exception:
+            pass
+            
     fp_df = None
     if os.path.exists(fp_path):
         fp_df = pd.read_csv(fp_path)
         
-    return players, fp_df
+    return players, team_data, fp_df
 
-players_df, fp_df = load_data()
+players_df, team_data, fp_df = load_data()
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
 st.caption("Custom Athletic Projections & Dynamic VORP Recalibration")
@@ -40,7 +51,7 @@ if players_df is not None:
     tabs = st.tabs([
         "🎯 True VORP Recalibrator", 
         "🌊 Volumetric Ripple Engine", 
-        "⚡ QB Stacking & Co-Variance", 
+        "⚡ QB Stacking Matrix", 
         "🕵️ Opponent Keeper Spy"
     ])
 
@@ -93,16 +104,50 @@ if players_df is not None:
     # --- TAB 2: VOLUMETRIC RIPPLE ENGINE ---
     with tabs[1]:
         st.header("2. Workload & Target Share Simulator")
-        st.markdown("Simulate training camp news or depth chart changes by shifting volume.")
-        sel_team = st.selectbox("Select Team", ["CHI", "SEA", "LAR", "CIN", "LAC", "DEN", "KC"])
-        st.info(f"Team engine for **{sel_team}** loaded. Adjust target and rush share distributions dynamically.")
+        st.markdown("Inspect team-level workload distributions and volume projections.")
+        
+        if team_data:
+            sel_team = st.selectbox("Select Team", list(team_data.keys()))
+            df_t = team_data[sel_team]
+            st.subheader(f"{sel_team} Player Projections & Workload Shares")
+            
+            cols_to_show = [c for c in ['PLAYER', 'POS', 'PASS ATT', 'RUSH ATT', 'TARGETS', 'REC', 'RECV YARDS', 'RECV TD', 'RUSH YARDS', 'RUSH TD', 'TGT SHARE'] if c in df_t.columns]
+            df_display = df_t[cols_to_show].dropna(subset=['PLAYER']).copy()
+            st.dataframe(df_display, use_container_width=True)
 
     # --- TAB 3: STACK MATRIX ---
     with tabs[2]:
-        st.header("3. QB-Catcher Correlation & Portfolio Stacking")
-        st.markdown("Quantify upside and variance when pairing starting QBs with pass catchers.")
+        st.header("3. QB-Pass Catcher Correlation & Stacking")
+        st.markdown("Select a starting QB to analyze his primary stack partners.")
+        
+        qbs = players_df[players_df['Pos'] == 'QB']['Player'].tolist()
+        sel_qb = st.selectbox("Select Starting QB", qbs[:20])
+        
+        st.subheader(f"Portfolio Stack Options for {sel_qb}")
+        qb_fps = players_df[players_df['Player'] == sel_qb]['FPS'].values[0] if not players_df[players_df['Player'] == sel_qb].empty else 0
+        st.metric(f"{sel_qb} Projected Points", round(qb_fps, 1))
 
     # --- TAB 4: OPPONENT KEEPER SPY ---
     with tabs[3]:
-        st.header("4. Opponent Keeper & Trade Arbitrage")
-        st.markdown("Compare opponent roster holdings against FantasyPros ECR to identify trade targets.")
+        st.header("4. Opponent Keeper & Trade Arbitrage Spy")
+        st.markdown("Select an opponent's player to evaluate market value vs. custom projections.")
+        
+        search_player = st.selectbox("Select Player on Opponent Roster", players_df['Player'].tolist())
+        
+        if search_player:
+            p_data = df_calc[df_calc['Player'] == search_player]
+            if not p_data.empty:
+                row = p_data.iloc[0]
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Custom True Rank", int(row['True_Rank']))
+                m2.metric("FantasyPros Rank", int(row['FP_Rank']) if pd.notna(row['FP_Rank']) else "N/A")
+                m3.metric("Rank Surplus", f"{int(row['Rank_Surplus'])}" if pd.notna(row['Rank_Surplus']) else "N/A")
+                m4.metric("Projected Points (FPS)", round(row['FPS'], 1))
+                
+                if pd.notna(row['Rank_Surplus']):
+                    if row['Rank_Surplus'] > 15:
+                        st.success(f"🔥 **TRADE TARGET / BUY LOW:** FantasyPros ranks {search_player} much later than your custom model (Surplus: +{int(row['Rank_Surplus'])} picks).")
+                    elif row['Rank_Surplus'] < -15:
+                        st.warning(f"⚠️ **OVERVALUED BY FP:** FantasyPros overvalues {search_player} relative to your scoring. Great player to trade AWAY or let them keep.")
+                    else:
+                        st.info(f"⚖️ **FAIR MARKET:** {search_player} is priced similarly across both systems.")
