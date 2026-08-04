@@ -45,7 +45,7 @@ def load_data():
 players_df, team_data, fp_df = load_data()
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Custom Athletic Projections & Dynamic VORP Recalibration")
+st.caption("Custom Athletic Projections & Dynamic Volumetric Simulator")
 
 if players_df is not None:
     tabs = st.tabs([
@@ -58,7 +58,6 @@ if players_df is not None:
     # --- TAB 1: TRUE VORP RECALIBRATOR ---
     with tabs[0]:
         st.header("1. Roster Baseline & True VORP Engine")
-        st.markdown("Adjust roster requirements below (e.g., set **Starting TEs = 0**) to remove artificial TE inflation and recalibrate true positional scarcity.")
         
         c1, c2, c3, c4 = st.columns(4)
         num_teams = c1.number_input("Teams in League", 8, 16, 12)
@@ -71,7 +70,6 @@ if players_df is not None:
         start_flex = c6.number_input("WR/RB/TE Flex Slots", 0, 3, 1)
         start_op = c7.number_input("OP / Superflex Slots", 0, 2, 1)
         
-        # Calculate cutoffs
         qb_cutoff = int(num_teams * (start_qb + start_op * 0.8))
         rb_cutoff = int(num_teams * (start_rb + start_flex * 0.4))
         wr_cutoff = int(num_teams * (start_wr + start_flex * 0.5 + (1 if start_te == 0 else 0) * 0.1))
@@ -101,19 +99,73 @@ if players_df is not None:
             use_container_width=True
         )
 
-    # --- TAB 2: VOLUMETRIC RIPPLE ENGINE ---
+    # --- TAB 2: VOLUMETRIC RIPPLE ENGINE (INTERACTIVE SIMULATOR) ---
     with tabs[1]:
-        st.header("2. Workload & Target Share Simulator")
-        st.markdown("Inspect team-level workload distributions and volume projections.")
+        st.header("2. Dynamic Volumetric Ripple Simulator")
+        st.markdown("Adjust team pass/rush volume or individual target/rush shares to see real-time point recalculations across the depth chart.")
         
         if team_data:
-            sel_team = st.selectbox("Select Team", list(team_data.keys()))
-            df_t = team_data[sel_team]
-            st.subheader(f"{sel_team} Player Projections & Workload Shares")
+            sel_team = st.selectbox("Select Team to Simulate", list(team_data.keys()), index=5)
+            df_t = team_data[sel_team].copy()
+            df_players_team = df_t[df_t['PLAYER'].notna() & (df_t['PLAYER'] != 'TEAM NUMBERS')].copy()
             
-            cols_to_show = [c for c in ['PLAYER', 'POS', 'PASS ATT', 'RUSH ATT', 'TARGETS', 'REC', 'RECV YARDS', 'RECV TD', 'RUSH YARDS', 'RUSH TD', 'TGT SHARE'] if c in df_t.columns]
-            df_display = df_t[cols_to_show].dropna(subset=['PLAYER']).copy()
-            st.dataframe(df_display, use_container_width=True)
+            st.subheader(f"⚙️ Simulation Controls for {sel_team}")
+            
+            col_vol1, col_vol2 = st.columns(2)
+            team_pass_mult = col_vol1.slider(f"{sel_team} Team Pass Volume Multiplier", 0.70, 1.30, 1.00, 0.05, help="Simulate offense passing 10% more or less than baseline.")
+            team_rush_mult = col_vol2.slider(f"{sel_team} Team Rush Volume Multiplier", 0.70, 1.30, 1.00, 0.05, help="Simulate offense rushing 10% more or less than baseline.")
+            
+            st.markdown("---")
+            st.markdown("### Individual Player Target & Rush Share Shifts")
+            
+            sim_results = []
+            for idx, row in df_players_team.head(8).iterrows():
+                p_name = row['PLAYER']
+                p_pos = row['POS']
+                
+                base_tgt_share = row['TGT SHARE'] if pd.notna(row['TGT SHARE']) else 0.0
+                base_rush_share = row['RUSH SHARE'] if pd.notna(row['RUSH SHARE']) else 0.0
+                
+                c_p1, c_p2, c_p3 = st.columns([2, 3, 3])
+                c_p1.markdown(f"**{p_name}** ({p_pos})")
+                
+                new_tgt_share = base_tgt_share
+                new_rush_share = base_rush_share
+                
+                if p_pos in ['WR', 'TE', 'RB'] and base_tgt_share > 0.02:
+                    new_tgt_share = c_p2.slider(f"{p_name} Target Share", 0.0, 0.40, float(round(base_tgt_share, 3)), 0.01, key=f"tgt_{p_name}")
+                if p_pos in ['RB', 'QB'] and base_rush_share > 0.02:
+                    new_rush_share = c_p3.slider(f"{p_name} Rush Share", 0.0, 0.85, float(round(base_rush_share, 3)), 0.02, key=f"rush_{p_name}")
+                
+                tgt_scale = (new_tgt_share / base_tgt_share) if base_tgt_share > 0 else 1.0
+                rush_scale = (new_rush_share / base_rush_share) if base_rush_share > 0 else 1.0
+                
+                base_rec_pts = (row['REC']*0.5 + row['RECV YARDS']*0.1 + row['RECV TD']*6.0) if pd.notna(row['REC']) else 0.0
+                base_rush_pts = (row['RUSH YARDS']*0.1 + row['RUSH TD']*6.0) if pd.notna(row['RUSH YARDS']) else 0.0
+                base_pass_pts = (row['PASS YARDS']*0.04 + row['PASS TD']*6.0 + row['COMP']*0.1 - row['INT']*1.0) if pd.notna(row['PASS YARDS']) else 0.0
+                
+                sim_rec_pts = base_rec_pts * tgt_scale * team_pass_mult
+                sim_rush_pts = base_rush_pts * rush_scale * team_rush_mult
+                sim_pass_pts = base_pass_pts * team_pass_mult
+                
+                sim_total_fps = sim_rec_pts + sim_rush_pts + sim_pass_pts
+                base_total_fps = base_rec_pts + base_rush_pts + base_pass_pts
+                
+                delta_fps = sim_total_fps - base_total_fps
+                
+                sim_results.append({
+                    'PLAYER': p_name,
+                    'POS': p_pos,
+                    'Simulated Target Share': f"{round(new_tgt_share*100, 1)}%",
+                    'Simulated Rush Share': f"{round(new_rush_share*100, 1)}%",
+                    'Baseline Points': round(base_total_fps, 1),
+                    'Simulated Points': round(sim_total_fps, 1),
+                    'Point Shift (Δ)': round(delta_fps, 1)
+                })
+            
+            st.subheader(f"📊 Live Simulation Results for {sel_team}")
+            df_sim_res = pd.DataFrame(sim_results)
+            st.dataframe(df_sim_res, use_container_width=True)
 
     # --- TAB 3: STACK MATRIX ---
     with tabs[2]:
