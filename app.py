@@ -44,20 +44,46 @@ def load_data():
 
 players_df, team_data, fp_df = load_data()
 
+# Monte Carlo Engine Helper
+@st.cache_data
+def run_monte_carlo_sims(df, n_sims=2000):
+    np.random.seed(42)
+    results = []
+    
+    for idx, row in df.iterrows():
+        mean_fps = row['FPS']
+        pos = row['Pos']
+        
+        # Position-specific volatility profile (Std Dev % of mean)
+        vol_map = {'QB': 0.15, 'RB': 0.22, 'WR': 0.25, 'TE': 0.28}
+        std_dev = mean_fps * vol_map.get(pos, 0.20)
+        
+        sims = np.random.normal(mean_fps, std_dev, n_sims)
+        
+        results.append({
+            'Player': row['Player'],
+            '10th_Floor': np.percentile(sims, 10),
+            '50th_Median': np.percentile(sims, 50),
+            '90th_Ceiling': np.percentile(sims, 90)
+        })
+        
+    return pd.DataFrame(results)
+
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Custom Athletic Projections & Dynamic Volumetric Simulator")
+st.caption("Custom Projections, Dynamic VORP & Monte Carlo Risk Analytics")
 
 if players_df is not None:
     tabs = st.tabs([
-        "🎯 True VORP Recalibrator", 
+        "🎯 True VORP & Monte Carlo Board", 
         "🌊 Volumetric Ripple Engine", 
         "⚡ QB Stacking Matrix", 
         "🕵️ Opponent Keeper Spy"
     ])
 
-    # --- TAB 1: TRUE VORP RECALIBRATOR ---
+    # --- TAB 1: TRUE VORP & MONTE CARLO BOARD ---
     with tabs[0]:
-        st.header("1. Roster Baseline & True VORP Engine")
+        st.header("1. Roster Baseline, True VORP & Monte Carlo Analytics")
+        st.markdown("Adjust roster parameters and ranking metric (**Median**, **Floor**, or **Ceiling**) below.")
         
         c1, c2, c3, c4 = st.columns(4)
         num_teams = c1.number_input("Teams in League", 8, 16, 12)
@@ -65,11 +91,13 @@ if players_df is not None:
         start_rb = c3.number_input("Starting RBs", 1, 4, 2)
         start_wr = c4.number_input("Starting WRs", 1, 4, 2)
         
-        c5, c6, c7 = st.columns(3)
+        c5, c6, c7, c8 = st.columns(4)
         start_te = c5.number_input("Starting TEs (0 = Flex Only)", 0, 2, 0)
         start_flex = c6.number_input("WR/RB/TE Flex Slots", 0, 3, 1)
         start_op = c7.number_input("OP / Superflex Slots", 0, 2, 1)
+        rank_by = c8.selectbox("Optimize Board By", ["Expected VORP (50th)", "High Ceiling (90th %)", "Safe Floor (10th %)"])
         
+        # Calculate cutoffs
         qb_cutoff = int(num_teams * (start_qb + start_op * 0.8))
         rb_cutoff = int(num_teams * (start_rb + start_flex * 0.4))
         wr_cutoff = int(num_teams * (start_wr + start_flex * 0.5 + (1 if start_te == 0 else 0) * 0.1))
@@ -85,17 +113,36 @@ if players_df is not None:
         df_calc = players_df.copy()
         df_calc['Baseline_FPS'] = df_calc['Pos'].map(baselines)
         df_calc['True_VORP'] = df_calc['FPS'] - df_calc['Baseline_FPS']
-        df_calc = df_calc.sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
+        
+        # Merge Monte Carlo Sims
+        mc_df = run_monte_carlo_sims(df_calc)
+        df_calc = pd.merge(df_calc, mc_df, on='Player')
+        
+        # Sort based on user selection
+        if rank_by == "High Ceiling (90th %)":
+            df_calc['Sort_Metric'] = df_calc['90th_Ceiling'] - df_calc['Baseline_FPS']
+        elif rank_by == "Safe Floor (10th %)":
+            df_calc['Sort_Metric'] = df_calc['10th_Floor'] - df_calc['Baseline_FPS']
+        else:
+            df_calc['Sort_Metric'] = df_calc['True_VORP']
+            
+        df_calc = df_calc.sort_values(by='Sort_Metric', ascending=False).reset_index(drop=True)
         df_calc['True_Rank'] = df_calc.index + 1
         
         if fp_df is not None:
             df_calc = pd.merge(df_calc, fp_df[['PLAYER NAME', 'RK']], left_on='Player', right_on='PLAYER NAME', how='left')
             df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
             df_calc['Rank_Surplus'] = df_calc['FP_Rank'] - df_calc['True_Rank']
+            
+        # Format display
+        df_calc['10th_Floor'] = df_calc['10th_Floor'].round(1)
+        df_calc['50th_Median'] = df_calc['50th_Median'].round(1)
+        df_calc['90th_Ceiling'] = df_calc['90th_Ceiling'].round(1)
+        df_calc['True_VORP'] = df_calc['True_VORP'].round(1)
         
-        st.subheader("Calibrated Overall Board")
+        st.subheader("Calibrated Overall Board with Monte Carlo Range")
         st.dataframe(
-            df_calc[['True_Rank', 'Player', 'Pos_RK', 'Pos', 'FPS', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].dropna(subset=['Player']), 
+            df_calc[['True_Rank', 'Player', 'Pos_RK', 'Pos', 'FPS', '10th_Floor', '90th_Ceiling', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].dropna(subset=['Player']), 
             use_container_width=True
         )
 
@@ -115,12 +162,10 @@ if players_df is not None:
             st.subheader(f"⚙️ Simulation Controls for {sel_team}")
             
             col_vol1, col_vol2 = st.columns(2)
-            team_pass_mult = col_vol1.slider(f"{sel_team} Team Pass Volume Multiplier", 0.70, 1.30, 1.00, 0.05, help="Simulate offense passing 10% more or less than baseline.")
-            team_rush_mult = col_vol2.slider(f"{sel_team} Team Rush Volume Multiplier", 0.70, 1.30, 1.00, 0.05, help="Simulate offense rushing 10% more or less than baseline.")
+            team_pass_mult = col_vol1.slider(f"{sel_team} Team Pass Volume Multiplier", 0.70, 1.30, 1.00, 0.05)
+            team_rush_mult = col_vol2.slider(f"{sel_team} Team Rush Volume Multiplier", 0.70, 1.30, 1.00, 0.05)
             
             st.markdown("---")
-            st.markdown("### Individual Player Target & Rush Share Shifts")
-            
             sim_results = []
             for idx, row in df_players_team.head(8).iterrows():
                 p_name = row['PLAYER']
@@ -154,8 +199,6 @@ if players_df is not None:
                 sim_total_fps = sim_rec_pts + sim_rush_pts + sim_pass_pts
                 base_total_fps = base_rec_pts + base_rush_pts + base_pass_pts
                 
-                delta_fps = sim_total_fps - base_total_fps
-                
                 sim_results.append({
                     'PLAYER': p_name,
                     'POS': p_pos,
@@ -163,22 +206,17 @@ if players_df is not None:
                     'Simulated Rush Share': f"{round(new_rush_share*100, 1)}%",
                     'Baseline Points': round(base_total_fps, 1),
                     'Simulated Points': round(sim_total_fps, 1),
-                    'Point Shift (Δ)': round(delta_fps, 1)
+                    'Point Shift (Δ)': round(sim_total_fps - base_total_fps, 1)
                 })
             
-            st.subheader(f"📊 Live Simulation Results for {sel_team}")
-            df_sim_res = pd.DataFrame(sim_results)
-            st.dataframe(df_sim_res, use_container_width=True)
+            st.dataframe(pd.DataFrame(sim_results), use_container_width=True)
 
-    # --- TAB 3: STACK MATRIX (DYNAMIC CO-VARIANCE & CORRELATION) ---
+    # --- TAB 3: STACK MATRIX ---
     with tabs[2]:
         st.header("3. QB-Pass Catcher Correlation & Portfolio Stacking Matrix")
-        st.markdown("Pair any starting QB with his team's pass catchers to calculate **total combined output**, **target capture rate**, and **draft cost efficiency**.")
-        
         qbs = players_df[players_df['Pos'] == 'QB']['Player'].tolist()
         sel_qb = st.selectbox("Select Starting QB", qbs[:25], index=0)
         
-        # Match QB to team sheet
         qb_team = None
         qb_row = None
         for team_code, df_team in team_data.items():
@@ -190,10 +228,7 @@ if players_df is not None:
                 
         if qb_team and qb_team in team_data:
             df_team = team_data[qb_team].copy()
-            
-            # Convert shares to numeric safely
             df_team['TGT SHARE'] = pd.to_numeric(df_team['TGT SHARE'], errors='coerce')
-            df_team['RUSH SHARE'] = pd.to_numeric(df_team['RUSH SHARE'], errors='coerce')
             
             df_catchers = df_team[
                 (df_team['POS'].isin(['WR', 'TE', 'RB'])) & 
@@ -203,68 +238,38 @@ if players_df is not None:
             
             qb_fps = (qb_row['PASS YARDS']*0.04 + qb_row['PASS TD']*6.0 + qb_row['COMP']*0.1 - qb_row['INT']*1.0 + qb_row['RUSH YARDS']*0.1 + qb_row['RUSH TD']*6.0) if pd.notna(qb_row['PASS YARDS']) else 0.0
             
-            st.markdown(f"### 🎯 Team Stack Dashboard: **{sel_qb} ({qb_team})**")
-            m1, m2, m3 = st.columns(3)
-            m1.metric("QB Projected Points", round(qb_fps, 1))
-            m2.metric("Projected Pass Attempts", int(qb_row['PASS ATT']) if pd.notna(qb_row['PASS ATT']) else "N/A")
-            m3.metric("Projected Pass TDs", round(qb_row['PASS TD'], 1) if pd.notna(qb_row['PASS TD']) else "N/A")
-            
-            st.markdown("---")
-            st.subheader(f"Pass Catcher Portfolio Options for {sel_qb}")
+            st.subheader(f"Pass Catcher Portfolio Options for {sel_qb} ({qb_team})")
             
             stack_data = []
             for idx, c_row in df_catchers.iterrows():
                 c_name = c_row['PLAYER']
-                c_pos = c_row['POS']
                 tgt_share = c_row['TGT SHARE'] if pd.notna(c_row['TGT SHARE']) else 0.0
                 rec_yds = c_row['RECV YARDS'] if pd.notna(c_row['RECV YARDS']) else 0.0
                 rec_tds = c_row['RECV TD'] if pd.notna(c_row['RECV TD']) else 0.0
                 recs = c_row['REC'] if pd.notna(c_row['REC']) else 0.0
                 
                 c_fps = recs*0.5 + rec_yds*0.1 + rec_tds*6.0
-                stack_total = qb_fps + c_fps
                 
-                # Fetch ranks
                 c_info = df_calc[df_calc['Player'] == c_name]
                 c_rank = int(c_info['True_Rank'].values[0]) if not c_info.empty else 999
                 fp_rank = int(c_info['FP_Rank'].values[0]) if not c_info.empty and pd.notna(c_info['FP_Rank'].values[0]) else 999
                 
                 stack_data.append({
                     'Pass Catcher': c_name,
-                    'Pos': c_pos,
+                    'Pos': c_row['POS'],
                     'Target Share': f"{round(tgt_share*100, 1)}%",
                     'Catcher FPS': round(c_fps, 1),
-                    'Combined Stack FPS': round(stack_total, 1),
+                    'Combined Stack FPS': round(qb_fps + c_fps, 1),
                     'Custom True Rank': c_rank,
                     'FP Cost Rank': fp_rank,
                     'Arbitrage Surplus': (fp_rank - c_rank) if fp_rank < 999 else "N/A"
                 })
                 
-            df_stacks = pd.DataFrame(stack_data).sort_values(by='Combined Stack FPS', ascending=False)
-            st.dataframe(df_stacks, use_container_width=True)
-            
-            # Multi-Player Double Stack Calculator
-            st.markdown("---")
-            st.subheader("⚡ Double-Stack Multiplier Calculator")
-            selected_catchers = st.multiselect("Select 2 Catcher Partners for Double Stack", df_catchers['PLAYER'].tolist(), default=df_catchers['PLAYER'].tolist()[:2] if len(df_catchers) >= 2 else df_catchers['PLAYER'].tolist())
-            
-            if len(selected_catchers) >= 2:
-                df_sub = df_stacks[df_stacks['Pass Catcher'].isin(selected_catchers)]
-                combined_tgt_share = df_catchers[df_catchers['PLAYER'].isin(selected_catchers)]['TGT SHARE'].sum()
-                double_stack_fps = qb_fps + sum(df_sub['Catcher FPS'])
-                
-                col_ds1, col_ds2, col_ds3 = st.columns(3)
-                col_ds1.metric("Double-Stack Total Points", round(double_stack_fps, 1))
-                col_ds2.metric("Target Capture Rate", f"{round(combined_tgt_share*100, 1)}%")
-                col_ds3.metric("Pass TD Capture Rate", "~85-90%")
-                
-                st.success(f"🔥 Holding {sel_qb} + {', '.join(selected_catchers)} captures **{round(combined_tgt_share*100, 1)}%** of {qb_team}'s entire passing volume!")
+            st.dataframe(pd.DataFrame(stack_data).sort_values(by='Combined Stack FPS', ascending=False), use_container_width=True)
 
     # --- TAB 4: OPPONENT KEEPER SPY ---
     with tabs[3]:
         st.header("4. Opponent Keeper & Trade Arbitrage Spy")
-        st.markdown("Select an opponent's player to evaluate market value vs. custom projections.")
-        
         search_player = st.selectbox("Select Player on Opponent Roster", players_df['Player'].tolist())
         
         if search_player:
@@ -275,12 +280,4 @@ if players_df is not None:
                 m1.metric("Custom True Rank", int(row['True_Rank']))
                 m2.metric("FantasyPros Rank", int(row['FP_Rank']) if pd.notna(row['FP_Rank']) else "N/A")
                 m3.metric("Rank Surplus", f"{int(row['Rank_Surplus'])}" if pd.notna(row['Rank_Surplus']) else "N/A")
-                m4.metric("Projected Points (FPS)", round(row['FPS'], 1))
-                
-                if pd.notna(row['Rank_Surplus']):
-                    if row['Rank_Surplus'] > 15:
-                        st.success(f"🔥 **TRADE TARGET / BUY LOW:** FantasyPros ranks {search_player} much later than your custom model (Surplus: +{int(row['Rank_Surplus'])} picks).")
-                    elif row['Rank_Surplus'] < -15:
-                        st.warning(f"⚠️ **OVERVALUED BY FP:** FantasyPros overvalues {search_player} relative to your scoring. Great player to trade AWAY or let them keep.")
-                    else:
-                        st.info(f"⚖️ **FAIR MARKET:** {search_player} is priced similarly across both systems.")
+                m4.metric("90th % Ceiling", round(row['90th_Ceiling'], 1))
