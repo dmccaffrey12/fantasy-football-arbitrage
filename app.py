@@ -262,10 +262,10 @@ for p_num, p_name in KEEPER_PICK_MAPPING.items():
     assigned_team = PICK_TO_TEAM_MAP.get(p_num, 1)
     team_rosters[assigned_team].append(p_name)
 
-# Assign live draft selections made during the draft (picks not in pre-set keepers)
+# Assign live draft selections made during the draft
 live_drafted = [p for p in st.session_state.drafted_all if p not in DEFAULT_KEEPERS]
 for idx, p_name in enumerate(live_drafted):
-    live_pick_num = len(DEFAULT_KEEPERS) + idx + 1
+    live_pick_num = idx + 1
     assigned_team = PICK_TO_TEAM_MAP.get(live_pick_num, 10)
     team_rosters[assigned_team].append(p_name)
 
@@ -275,13 +275,14 @@ with st.sidebar:
     
     all_player_names = players_df['Player'].tolist() if players_df is not None else []
     
-    total_drafted_count = len(st.session_state.drafted_all)
-    current_pick_num = total_drafted_count + 1
-    current_round_num = ((current_pick_num - 1) // 12) + 1
-    on_clock_team = PICK_TO_TEAM_MAP.get(current_pick_num, 10)
+    # Live Draft Pick Counter Fix
+    live_selections = [p for p in st.session_state.drafted_all if p not in DEFAULT_KEEPERS]
+    live_pick_num = len(live_selections) + 1
+    current_round_num = ((live_pick_num - 1) // 12) + 1
+    on_clock_team = PICK_TO_TEAM_MAP.get(live_pick_num, 10)
     
     m_side1, m_side2 = st.columns(2)
-    m_side1.metric("Current Pick Slot", f"#{current_pick_num}")
+    m_side1.metric("Live Draft Pick", f"#{live_pick_num}")
     m_side2.metric("On The Clock", f"Team #{on_clock_team}" if on_clock_team != 10 else "⭐ YOU (#10)")
     
     st.markdown("---")
@@ -395,9 +396,9 @@ if players_df is not None:
         
         # AUTO-CALCULATE TURN MANAGERS & POSITIONAL DEMAND
         scheduled_picks = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
-        next_my_pick = next((p for p in scheduled_picks if p >= current_pick_num), scheduled_picks[-1])
+        next_my_pick = next((p for p in scheduled_picks if p >= live_pick_num), scheduled_picks[-1])
         
-        turn_picks = list(range(current_pick_num, next_my_pick))
+        turn_picks = list(range(live_pick_num, next_my_pick))
         turn_teams = list(set([PICK_TO_TEAM_MAP.get(p, 1) for p in turn_picks if PICK_TO_TEAM_MAP.get(p, 1) != 10]))
         
         turn_qbs_count, turn_rbs_count, turn_wrs_count, turn_tes_count = 0, 0, 0, 0
@@ -410,7 +411,7 @@ if players_df is not None:
             turn_tes_count += len(df_t_roster[df_t_roster['Pos'] == 'TE'])
             
         st.subheader("⚖️ Auto-Sniper Engine (Automated Need-Weighted Turn Spy)")
-        st.caption(f"🕵️ **Turn Intelligence (Picks #{current_pick_num} to #{next_my_pick}):** Evaluating Rival Teams **{', '.join([f'Team {t}' for t in turn_teams]) if turn_teams else 'None (You are On the Clock!)'}**")
+        st.caption(f"🕵️ **Turn Intelligence (Picks #{live_pick_num} to #{next_my_pick}):** Evaluating Rival Teams **{', '.join([f'Team {t}' for t in turn_teams]) if turn_teams else 'None (You are On the Clock!)'}**")
         
         calc_col1, calc_col2 = st.columns(2)
         target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:300], index=min(0, len(df_undrafted)-1))
