@@ -85,29 +85,17 @@ def clean_player_name(name):
             name_clean = name_clean[:-len(suffix)]
     return name_clean.strip().lower()
 
-# CALLBACK FUNCTIONS FOR INLINE BUTTONS (Synchronizes widget state before render)
+# CALLBACK FUNCTIONS FOR INLINE BUTTONS
 def handle_draft_me(p_name):
     if p_name not in st.session_state.drafted_all:
         st.session_state.drafted_all.append(p_name)
     if p_name not in st.session_state.my_roster:
         st.session_state.my_roster.append(p_name)
-        
-    # Update widget keys directly inside callback
-    if 'drafted_selector' in st.session_state and p_name not in st.session_state.drafted_selector:
-        st.session_state.drafted_selector.append(p_name)
-    if 'my_roster_selector' in st.session_state and p_name not in st.session_state.my_roster_selector:
-        st.session_state.my_roster_selector.append(p_name)
-        
     save_draft_state()
 
 def handle_mark_taken(p_name):
     if p_name not in st.session_state.drafted_all:
         st.session_state.drafted_all.append(p_name)
-        
-    # Update widget key directly inside callback
-    if 'drafted_selector' in st.session_state and p_name not in st.session_state.drafted_selector:
-        st.session_state.drafted_selector.append(p_name)
-        
     save_draft_state()
 
 @st.cache_data
@@ -294,6 +282,19 @@ for idx, p_name in enumerate(live_drafted):
     assigned_team = PICK_TO_TEAM_MAP.get(live_pick_num, 10)
     team_rosters[assigned_team].append(p_name)
 
+# SIDEBAR WIDGET CALLBACK HANDLERS (Clean State Sync)
+def on_drafted_multiselect_change():
+    st.session_state.drafted_all = st.session_state.widget_drafted_multiselect
+    save_draft_state()
+
+def on_roster_multiselect_change():
+    st.session_state.my_roster = st.session_state.widget_roster_multiselect
+    save_draft_state()
+
+def on_watchlist_multiselect_change():
+    st.session_state.my_watchlist = st.session_state.widget_watchlist_multiselect
+    save_draft_state()
+
 # --- SIDEBAR: LIVE DRAFT LOG, WATCHLIST & CONTROLS ---
 with st.sidebar:
     st.header("📋 Live Draft Control Center")
@@ -314,41 +315,35 @@ with st.sidebar:
     st.subheader("📌 On-the-Clock Target Watchlist")
     
     active_watchlist_options = [p for p in all_player_names if p not in st.session_state.drafted_all]
-    watchlist_input = st.multiselect(
+    st.multiselect(
         "Bookmark Targets for Next Pick",
         active_watchlist_options,
         default=[p for p in st.session_state.my_watchlist if p in active_watchlist_options],
-        key="watchlist_selector"
+        key="widget_watchlist_multiselect",
+        on_change=on_watchlist_multiselect_change
     )
-    if watchlist_input != st.session_state.my_watchlist:
-        st.session_state.my_watchlist = watchlist_input
-        save_draft_state()
         
     st.markdown("---")
     
     # Cross off drafted players across the league
-    drafted_input = st.multiselect(
+    st.multiselect(
         "Cross Off Drafted Players / Keepers", 
         all_player_names, 
         default=[p for p in st.session_state.drafted_all if p in all_player_names],
-        key="drafted_selector"
+        key="widget_drafted_multiselect",
+        on_change=on_drafted_multiselect_change
     )
-    if drafted_input != st.session_state.drafted_all:
-        st.session_state.drafted_all = drafted_input
-        save_draft_state()
     
     st.markdown("---")
     st.subheader("🛡️ My Drafted Squad")
     
-    my_squad_input = st.multiselect(
+    st.multiselect(
         "Add Player to My Team",
         all_player_names,
         default=[p for p in st.session_state.my_roster if p in all_player_names],
-        key="my_roster_selector"
+        key="widget_roster_multiselect",
+        on_change=on_roster_multiselect_change
     )
-    if my_squad_input != st.session_state.my_roster:
-        st.session_state.my_roster = my_squad_input
-        save_draft_state()
         
     st.markdown("---")
     col_btn1, col_btn2 = st.columns(2)
@@ -360,10 +355,6 @@ with st.sidebar:
         st.session_state.drafted_all = DEFAULT_KEEPERS
         st.session_state.my_roster = DEFAULT_MY_SQUAD
         st.session_state.my_watchlist = []
-        if "drafted_selector" in st.session_state:
-            st.session_state.drafted_selector = DEFAULT_KEEPERS
-        if "my_roster_selector" in st.session_state:
-            st.session_state.my_roster_selector = DEFAULT_MY_SQUAD
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
         st.rerun()
@@ -525,7 +516,7 @@ if players_df is not None:
             
         top_15_board = df_filtered_board.head(15)
         
-        # Display Quick Execution Table with Inline Buttons using Callbacks
+        # Display Quick Execution Table with Callbacks
         header_cols = st.columns([1, 3, 1, 1, 1.5, 1.5, 1.5, 1.5])
         header_cols[0].markdown("**Unkept Rk**")
         header_cols[1].markdown("**Player**")
