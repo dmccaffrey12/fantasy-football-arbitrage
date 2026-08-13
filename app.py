@@ -27,6 +27,17 @@ DEFAULT_KEEPERS = [
 
 DEFAULT_MY_SQUAD = ["Omarion Hampton"]
 
+# 12-TEAM SNAKE DRAFT PICK MATRIX MAPPING (180 PICKS)
+PICK_TO_TEAM_MAP = {}
+for rd in range(1, 16):
+    for p in range(1, 13):
+        overall = (rd - 1) * 12 + p
+        if rd % 2 == 1:
+            team_num = p
+        else:
+            team_num = 13 - p
+        PICK_TO_TEAM_MAP[overall] = team_num
+
 # Helper function to save draft state to disk
 def save_draft_state():
     state_data = {
@@ -184,7 +195,7 @@ if 'my_watchlist' not in st.session_state:
     st.session_state.my_watchlist = saved_state.get('my_watchlist', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Pre-Loaded Keepers, Turn Need-Weighted Snipe Spy & Dynamic VORP Co-Pilot")
+st.caption("Auto-Sniper Engine, 12-Team Need Tracker & Dynamic VORP Co-Pilot")
 
 # Global Master Processing for Base Rankings
 if players_df is not None:
@@ -226,6 +237,15 @@ if players_df is not None:
     df_calc['True_Rank'] = df_calc.index + 1
     df_calc['Rank_Surplus'] = df_calc['FP_Rank'] - df_calc['True_Rank']
 
+# BUILD AUTO-SNIPER OPPONENT ROSTER MATRIX (TEAMS 1 TO 12)
+team_rosters = {i: [] for i in range(1, 13)}
+
+# Map drafted players to their pick index order
+for pick_idx, p_name in enumerate(st.session_state.drafted_all):
+    assigned_pick = pick_idx + 1
+    assigned_team = PICK_TO_TEAM_MAP.get(assigned_pick, 1)
+    team_rosters[assigned_team].append(p_name)
+
 # --- SIDEBAR: LIVE DRAFT LOG, WATCHLIST & CONTROLS ---
 with st.sidebar:
     st.header("📋 Live Draft Control Center")
@@ -235,10 +255,11 @@ with st.sidebar:
     total_drafted_count = len(st.session_state.drafted_all)
     current_pick_num = total_drafted_count + 1
     current_round_num = ((current_pick_num - 1) // 12) + 1
+    on_clock_team = PICK_TO_TEAM_MAP.get(current_pick_num, 10)
     
     m_side1, m_side2 = st.columns(2)
-    m_side1.metric("League Drafted / Kept", f"{total_drafted_count} Players")
-    m_side2.metric("Current Round", f"Round {current_round_num}")
+    m_side1.metric("Current Pick Slot", f"#{current_pick_num}")
+    m_side2.metric("On The Clock", f"Team #{on_clock_team}" if on_clock_team != 10 else "⭐ YOU (#10)")
     
     st.markdown("---")
     st.subheader("📌 On-the-Clock Target Watchlist")
@@ -295,7 +316,6 @@ with st.sidebar:
         st.rerun()
 
 if players_df is not None:
-    # UPDATED: 5 Clean Tabs (Opponent Keeper Spy Removed)
     tabs = st.tabs([
         "⚡ Live Draft Scarcity Monitor", 
         "🎯 True VORP Board", 
@@ -304,9 +324,9 @@ if players_df is not None:
         "🤝 Preseason Trade Spy"
     ])
 
-    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & NEED-WEIGHTED SNIPE SPY ---
+    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & AUTO-SNIPER SPY ---
     with tabs[0]:
-        st.header("⚡ Live Draft Scarcity & One-Click Execution Board")
+        st.header("⚡ Live Draft Scarcity & Auto-Sniper Intelligence Board")
         
         # Filter out drafted players & keepers
         df_undrafted = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
@@ -349,22 +369,31 @@ if players_df is not None:
             st.success("✅ Positional supply is balanced across remaining unkept tiers.")
             
         st.markdown("---")
-        st.subheader("⚖️ Opponent Need-Weighted Snipe Risk Spy")
         
-        calc_col1, calc_col2 = st.columns(2)
-        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:150], index=min(0, len(df_undrafted)-1))
-        
+        # AUTO-CALCULATE TURN MANAGERS & POSITIONAL DEMAND
         scheduled_picks = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
         next_my_pick = next((p for p in scheduled_picks if p >= current_pick_num), scheduled_picks[-1])
-        next_pick_num = calc_col2.number_input("Target Pick Slot", min_value=1, max_value=200, value=next_my_pick, step=1)
         
-        # TURN SPY MANAGER NEED OVERRIDES
-        st.caption("🕵️ **Turn Manager Need Overrides:** Check positions already filled by managers picking between your turns to discount snipe risk:")
-        col_n1, col_n2, col_n3, col_n4 = st.columns(4)
-        turn_qbs_filled = col_n1.checkbox("Turn Managers Filled QBs (Zero QB Demand)", value=False)
-        turn_rbs_filled = col_n2.checkbox("Turn Managers Filled RBs (Zero RB Demand)", value=False)
-        turn_wrs_filled = col_n3.checkbox("Turn Managers Filled WRs (Zero WR Demand)", value=False)
-        turn_tes_filled = col_n4.checkbox("Turn Managers Filled TEs (Zero TE Demand)", value=False)
+        # Identify teams picking between current_pick_num and next_my_pick
+        turn_picks = list(range(current_pick_num, next_my_pick))
+        turn_teams = list(set([PICK_TO_TEAM_MAP.get(p, 1) for p in turn_picks if PICK_TO_TEAM_MAP.get(p, 1) != 10]))
+        
+        # Count positions drafted by turn teams
+        turn_qbs_count, turn_rbs_count, turn_wrs_count, turn_tes_count = 0, 0, 0, 0
+        for t_id in turn_teams:
+            t_players = team_rosters[t_id]
+            df_t_roster = df_calc[df_calc['Player'].isin(t_players)]
+            turn_qbs_count += len(df_t_roster[df_t_roster['Pos'] == 'QB'])
+            turn_rbs_count += len(df_t_roster[df_t_roster['Pos'] == 'RB'])
+            turn_wrs_count += len(df_t_roster[df_t_roster['Pos'] == 'WR'])
+            turn_tes_count += len(df_t_roster[df_t_roster['Pos'] == 'TE'])
+            
+        st.subheader("⚖️ Auto-Sniper Engine (Automated Need-Weighted Turn Spy)")
+        st.caption(f"🕵️ **Turn Intelligence (Picks #{current_pick_num} to #{next_my_pick}):** Evaluating Rival Teams **{', '.join([f'Team {t}' for t in turn_teams]) if turn_teams else 'None (You are On the Clock!)'}**")
+        
+        calc_col1, calc_col2 = st.columns(2)
+        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:300], index=min(0, len(df_undrafted)-1))
+        next_pick_num = calc_col2.number_input("Target Pick Slot", min_value=1, max_value=200, value=next_my_pick, step=1)
         
         if target_player_sel:
             p_data = df_undrafted[df_undrafted['Player'] == target_player_sel].iloc[0]
@@ -383,13 +412,18 @@ if players_df is not None:
             else:
                 survival_prob = max(5, 40 + int(fp_buffer * 3.0))
                 
-            # Apply Need-Weighted Multiplier
-            if (target_pos == 'QB' and turn_qbs_filled) or \
-               (target_pos == 'RB' and turn_rbs_filled) or \
-               (target_pos == 'WR' and turn_wrs_filled) or \
-               (target_pos == 'TE' and turn_tes_filled):
-                survival_prob = min(98, survival_prob + 35)
-                st.info(f"🛡️ **POSITIONAL BLOCKADE ACTIVE:** Turn managers have zero demand for **{target_pos}**. Survival odds boosted to **{survival_prob}%**!")
+            # Dynamic Need-Weighted Auto-Blockade Logic
+            blockade_active = False
+            if target_pos == 'QB' and (turn_qbs_count >= len(turn_teams) * 1.5 or len(turn_teams) == 0):
+                blockade_active = True
+            elif target_pos == 'RB' and turn_rbs_count >= len(turn_teams) * 2.5:
+                blockade_active = True
+            elif target_pos == 'WR' and turn_wrs_count >= len(turn_teams) * 3.0:
+                blockade_active = True
+                
+            if blockade_active:
+                survival_prob = min(98, survival_prob + 30)
+                st.info(f"🛡️ **AUTO-BLOCKADE ACTIVE:** Rival Turn Managers have saturated **{target_pos}** demand ({turn_qbs_count if target_pos=='QB' else turn_rbs_count} drafted). Survival odds boosted to **{survival_prob}%**!")
                 
             safety_net_pool = df_undrafted[
                 (df_undrafted['Player'] != target_player_sel) & 
@@ -401,7 +435,7 @@ if players_df is not None:
             m_s1, m_s2, m_s3, m_s4 = st.columns(4)
             m_s1.metric("Target FP ECR Rank", int(target_fp_rank) if pd.notna(target_fp_rank) else "N/A")
             m_s2.metric("Effective Unkept Rank", int(target_true_rank))
-            m_s3.metric("Adjusted Survival Odds", f"{survival_prob}%")
+            m_s3.metric("Auto-Snipe Survival Odds", f"{survival_prob}%")
             m_s4.metric("Safety Net Alternatives", f"{safety_count} Players")
             
             if survival_prob >= 75 and safety_count >= 2:
@@ -413,8 +447,25 @@ if players_df is not None:
             else:
                 st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at critical risk of being sniped before Pick {next_pick_num} (Survival: {survival_prob}%). Pull the trigger now.")
 
+        # EXPANDER: LIVE LEAGUE ROSTER & NEED TRACKER
+        with st.expander("🕵️ Live Opponent Roster & Need Dashboard (Teams 1 - 12)", expanded=False):
+            team_cols = st.columns(4)
+            for t_idx in range(1, 13):
+                col = team_cols[(t_idx - 1) % 4]
+                t_p_names = team_rosters[t_idx]
+                df_t_ros = df_calc[df_calc['Player'].isin(t_p_names)]
+                
+                qb_c = len(df_t_ros[df_t_ros['Pos'] == 'QB'])
+                rb_c = len(df_t_ros[df_t_ros['Pos'] == 'RB'])
+                wr_c = len(df_t_ros[df_t_ros['Pos'] == 'WR'])
+                te_c = len(df_t_ros[df_t_ros['Pos'] == 'TE'])
+                
+                col.markdown(f"**Team #{t_idx}{' (YOU)' if t_idx==10 else ''}**")
+                col.caption(f"QBs: {qb_c} | RBs: {rb_c} | WRs: {wr_c} | TEs: {te_c}")
+                col.caption(f"Roster: {', '.join(t_p_names[:4]) if t_p_names else 'None'}")
+                col.markdown("---")
+
         st.markdown("---")
-        
         st.subheader("🔥 Available Unkept Execution Table")
         
         pos_filter = st.radio("Filter By Position Tier", ["ALL", "QB", "RB", "WR", "TE"], horizontal=True, key="pos_filter_radio")
