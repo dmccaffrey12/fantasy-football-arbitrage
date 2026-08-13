@@ -275,7 +275,7 @@ with st.sidebar:
     
     all_player_names = players_df['Player'].tolist() if players_df is not None else []
     
-    # Live Draft Pick Counter Fix
+    # Live Draft Pick Counter
     live_selections = [p for p in st.session_state.drafted_all if p not in DEFAULT_KEEPERS]
     live_pick_num = len(live_selections) + 1
     current_round_num = ((live_pick_num - 1) // 12) + 1
@@ -335,6 +335,10 @@ with st.sidebar:
         st.session_state.drafted_all = DEFAULT_KEEPERS
         st.session_state.my_roster = DEFAULT_MY_SQUAD
         st.session_state.my_watchlist = []
+        if "drafted_selector" in st.session_state:
+            st.session_state.drafted_selector = DEFAULT_KEEPERS
+        if "my_roster_selector" in st.session_state:
+            st.session_state.my_roster_selector = DEFAULT_MY_SQUAD
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
         st.rerun()
@@ -522,14 +526,20 @@ if players_df is not None:
             
             # Button 1: Draft Me
             if cols[6].button("🟢 My Pick", key=f"btn_my_{p_name}_{idx}"):
-                st.session_state.drafted_all.append(p_name)
-                st.session_state.my_roster.append(p_name)
+                if p_name not in st.session_state.drafted_all:
+                    st.session_state.drafted_all.append(p_name)
+                if p_name not in st.session_state.my_roster:
+                    st.session_state.my_roster.append(p_name)
+                st.session_state.drafted_selector = st.session_state.drafted_all
+                st.session_state.my_roster_selector = st.session_state.my_roster
                 save_draft_state()
                 st.rerun()
                 
             # Button 2: Cross Off
             if cols[7].button("🔴 Taken", key=f"btn_off_{p_name}_{idx}"):
-                st.session_state.drafted_all.append(p_name)
+                if p_name not in st.session_state.drafted_all:
+                    st.session_state.drafted_all.append(p_name)
+                st.session_state.drafted_selector = st.session_state.drafted_all
                 save_draft_state()
                 st.rerun()
 
