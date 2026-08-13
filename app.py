@@ -4,7 +4,7 @@ import numpy as np
 import os
 import json
 
-# Import new standalone trade analyzer module
+# Import standalone trade analyzer module
 from trade_analyzer import render_trade_analyzer
 
 st.set_page_config(
@@ -45,8 +45,69 @@ def clean_player_name(name):
     return name_clean.strip().lower()
 
 @st.cache_data
+def calculate_player_bonuses(team_data):
+    """Simulates milestone game and long TD bonuses across 17-game schedules for all team sheets."""
+    bonuses = {}
+    np.random.seed(42)
+    games = 17.0
+    
+    for team_code, df_t in team_data.items():
+        if df_t is None or df_t.empty:
+            continue
+        for idx, row in df_t.iterrows():
+            p_name = row.get('PLAYER')
+            p_pos = row.get('POS')
+            if pd.isna(p_name) or p_name == 'TEAM NUMBERS' or not isinstance(p_name, str):
+                continue
+                
+            pass_yds = float(row['PASS YARDS']) if pd.notna(row.get('PASS YARDS')) and isinstance(row.get('PASS YARDS'), (int, float)) else 0.0
+            pass_td = float(row['PASS TD']) if pd.notna(row.get('PASS TD')) and isinstance(row.get('PASS TD'), (int, float)) else 0.0
+            rush_yds = float(row['RUSH YARDS']) if pd.notna(row.get('RUSH YARDS')) and isinstance(row.get('RUSH YARDS'), (int, float)) else 0.0
+            rush_td = float(row['RUSH TD']) if pd.notna(row.get('RUSH TD')) and isinstance(row.get('RUSH TD'), (int, float)) else 0.0
+            rec_yds = float(row['RECV YARDS']) if pd.notna(row.get('RECV YARDS')) and isinstance(row.get('RECV YARDS'), (int, float)) else 0.0
+            rec_td = float(row['RECV TD']) if pd.notna(row.get('RECV TD')) and isinstance(row.get('RECV TD'), (int, float)) else 0.0
+            
+            # 1. Passing Game Bonuses: 300-399 (+2), 400+ (+3)
+            p_bonus = 0.0
+            if pass_yds > 0:
+                avg_p_yds = pass_yds / games
+                sims = np.random.normal(avg_p_yds, 60.0, (400, 17))
+                b300 = np.mean(np.sum((sims >= 300) & (sims < 400), axis=1)) * 2.0
+                b400 = np.mean(np.sum(sims >= 400, axis=1)) * 3.0
+                p_bonus = b300 + b400
+                
+            # 2. Rushing Game Bonuses: 100-199 (+1), 200+ (+2)
+            r_bonus = 0.0
+            if rush_yds > 0:
+                avg_r_yds = rush_yds / games
+                sims = np.random.normal(avg_r_yds, max(12.0, avg_r_yds * 0.4), (400, 17))
+                b100 = np.mean(np.sum((sims >= 100) & (sims < 200), axis=1)) * 1.0
+                b200 = np.mean(np.sum(sims >= 200, axis=1)) * 2.0
+                r_bonus = b100 + b200
+                
+            # 3. Receiving Game Bonuses: 100-199 (+1), 200+ (+2)
+            c_bonus = 0.0
+            if rec_yds > 0:
+                avg_c_yds = rec_yds / games
+                sims = np.random.normal(avg_c_yds, max(12.0, avg_c_yds * 0.45), (400, 17))
+                b100c = np.mean(np.sum((sims >= 100) & (sims < 200), axis=1)) * 1.0
+                b200c = np.mean(np.sum(sims >= 200, axis=1)) * 2.0
+                c_bonus = b100c + b200c
+                
+            # Long TD Bonuses
+            td_p_b = pass_td * (0.10 * 1.0 + 0.06 * 4.0)  # 40+ (+1), 50+ (+4)
+            td_r_b = rush_td * (0.08 * 1.0 + 0.04 * 2.0)  # 40+ (+1), 50+ (+2)
+            td_c_b = rec_td * (0.12 * 1.0 + 0.08 * 2.0)   # 40+ (+1), 50+ (+2)
+            
+            total_bonus = p_bonus + r_bonus + c_bonus + td_p_b + td_r_b + td_c_b
+            c_name = clean_player_name(p_name)
+            bonuses[c_name] = round(total_bonus, 2)
+            
+    return bonuses
+
+@st.cache_data
 def load_data():
-    excel_path = '2026-FFB-Projections-0803.xlsx'
+    excel_path = '2026-FFB-Projections-0812.xlsx'  # Updated to Aug 12 file
     fp_path = 'FantasyPros_2026_Draft_OP_Rankings (3).csv'
     
     if not os.path.exists(excel_path):
@@ -112,44 +173,18 @@ if 'my_roster' not in st.session_state:
     st.session_state.my_roster = saved_state.get('my_roster', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Custom Projections, Dynamic VORP & Live Draft Scarcity Co-Pilot")
+st.caption("August 12 Projections, 1.0 PPR, Milestone Bonuses & Dynamic VORP Co-Pilot")
 
-# Global Master Processing for Base Rankings
-if players_df is not None:
-    num_teams = 12
-    start_qb, start_rb, start_wr, start_te, start_flex, start_op = 1, 2, 2, 0, 1, 1
-    
-    qb_cutoff = int(num_teams * (start_qb + start_op * 0.8))
-    rb_cutoff = int(num_teams * (start_rb + start_flex * 0.4))
-    wr_cutoff = int(num_teams * (start_wr + start_flex * 0.5 + (1 if start_te == 0 else 0) * 0.1))
-    te_cutoff = wr_cutoff
-    
-    qb_base = players_df[players_df['Pos'] == 'QB'].iloc[min(qb_cutoff, len(players_df[players_df['Pos']=='QB'])-1)]['FPS']
-    rb_base = players_df[players_df['Pos'] == 'RB'].iloc[min(rb_cutoff, len(players_df[players_df['Pos']=='RB'])-1)]['FPS']
-    wr_base = players_df[players_df['Pos'] == 'WR'].iloc[min(wr_cutoff, len(players_df[players_df['Pos']=='WR'])-1)]['FPS']
-    te_base = wr_base
-    
-    baselines = {'QB': qb_base, 'RB': rb_base, 'WR': wr_base, 'TE': te_base}
-    
-    df_calc = players_df.copy()
-    df_calc['Baseline_FPS'] = df_calc['Pos'].map(baselines)
-    df_calc['True_VORP'] = df_calc['FPS'] - df_calc['Baseline_FPS']
-    
-    if fp_df is not None:
-        df_calc = pd.merge(df_calc, fp_df[['Clean_FP_Name', 'RK']], left_on='Clean_Player', right_on='Clean_FP_Name', how='left')
-        df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
-        if 'Clean_FP_Name' in df_calc.columns:
-            df_calc.drop(columns=['Clean_FP_Name'], inplace=True)
-            
-    df_calc = df_calc.sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
-    df_calc['True_Rank'] = df_calc.index + 1
-    df_calc['Rank_Surplus'] = df_calc['FP_Rank'] - df_calc['True_Rank']
-
-# --- SIDEBAR: LIVE DRAFT LOG & MY SQUAD ---
+# --- SIDEBAR: LIVE DRAFT LOG & CONFIGURATION ---
 with st.sidebar:
     st.header("📋 Live Draft Control Center")
     
     all_player_names = players_df['Player'].tolist() if players_df is not None else []
+    
+    # Toggle Milestone & Long-TD Bonus Rules
+    apply_bonuses = st.checkbox("⚡ Apply Milestone & Long-TD Bonuses", value=True)
+    
+    st.markdown("---")
     
     # Cross off drafted players across the league
     drafted_input = st.multiselect(
@@ -187,6 +222,46 @@ with st.sidebar:
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
         st.rerun()
+
+# Global Master Processing for Base Rankings
+if players_df is not None:
+    df_calc = players_df.copy()
+    
+    # Calculate Bonuses if Toggled
+    if apply_bonuses and team_data:
+        bonus_dict = calculate_player_bonuses(team_data)
+        df_calc['Bonus_PTS'] = df_calc['Clean_Player'].map(bonus_dict).fillna(0.0)
+        df_calc['FPS'] = df_calc['FPS'] + df_calc['Bonus_PTS']
+    else:
+        df_calc['Bonus_PTS'] = 0.0
+
+    num_teams = 12
+    start_qb, start_rb, start_wr, start_te, start_flex, start_op = 1, 2, 2, 0, 1, 1
+    
+    qb_cutoff = int(num_teams * (start_qb + start_op * 0.8))
+    rb_cutoff = int(num_teams * (start_rb + start_flex * 0.4))
+    wr_cutoff = int(num_teams * (start_wr + start_flex * 0.5 + (1 if start_te == 0 else 0) * 0.1))
+    te_cutoff = wr_cutoff
+    
+    qb_base = df_calc[df_calc['Pos'] == 'QB'].iloc[min(qb_cutoff, len(df_calc[df_calc['Pos']=='QB'])-1)]['FPS']
+    rb_base = df_calc[df_calc['Pos'] == 'RB'].iloc[min(rb_cutoff, len(df_calc[df_calc['Pos']=='RB'])-1)]['FPS']
+    wr_base = df_calc[df_calc['Pos'] == 'WR'].iloc[min(wr_cutoff, len(df_calc[df_calc['Pos']=='WR'])-1)]['FPS']
+    te_base = wr_base
+    
+    baselines = {'QB': qb_base, 'RB': rb_base, 'WR': wr_base, 'TE': te_base}
+    
+    df_calc['Baseline_FPS'] = df_calc['Pos'].map(baselines)
+    df_calc['True_VORP'] = df_calc['FPS'] - df_calc['Baseline_FPS']
+    
+    if fp_df is not None:
+        df_calc = pd.merge(df_calc, fp_df[['Clean_FP_Name', 'RK']], left_on='Clean_Player', right_on='Clean_FP_Name', how='left')
+        df_calc.rename(columns={'RK': 'FP_Rank'}, inplace=True)
+        if 'Clean_FP_Name' in df_calc.columns:
+            df_calc.drop(columns=['Clean_FP_Name'], inplace=True)
+            
+    df_calc = df_calc.sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
+    df_calc['True_Rank'] = df_calc.index + 1
+    df_calc['Rank_Surplus'] = df_calc['FP_Rank'] - df_calc['True_Rank']
 
 if players_df is not None:
     tabs = st.tabs([
@@ -247,7 +322,6 @@ if players_df is not None:
         st.markdown("Evaluate whether to draft a target player **now** or **wait** until your next turn to harvest ranking surplus.")
         
         calc_col1, calc_col2 = st.columns(2)
-        # UPDATED: Sliced to top 150 undrafted players
         target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:150], index=min(4, len(df_undrafted)-1))
         next_pick_num = calc_col2.number_input("Your Next Draft Pick #", min_value=1, max_value=200, value=34, step=1)
         
@@ -282,13 +356,15 @@ if players_df is not None:
             m_s3.metric("Estimated Survival Odds", f"{survival_prob}%")
             m_s4.metric("Safety Net Alternatives", f"{safety_count} Players")
             
-            # Recommendation Logic
-            if survival_prob >= 70 and safety_count >= 2:
-                st.success(f"🟢 **RECOMMENDATION: SAFE TO WAIT.** {target_player_sel} has high survival odds ({survival_prob}%) to reach Pick {next_pick_num}, and you have {safety_count} strong safety net alternatives. Wait and harvest surplus!")
-            elif survival_prob >= 45 or safety_count >= 1:
-                st.warning(f"🟡 **RECOMMENDATION: MODERATE SNIPE RISK.** {target_player_sel} has {survival_prob}% survival odds to reach Pick {next_pick_num}. If you pass, your backup options are: {', '.join(safety_net_pool['Player'].tolist()[:3]) if safety_count > 0 else 'None'}.")
+            # Calibrated 60% Snipe Risk Recommendation Logic
+            if survival_prob >= 75 and safety_count >= 2:
+                st.success(f"🟢 **RECOMMENDATION: SAFE TO WAIT.** {target_player_sel} has high survival odds ({survival_prob}%) to reach Pick {next_pick_num}, and you have {safety_count} safety net alternatives. Wait and harvest surplus!")
+            elif survival_prob >= 60 and safety_count >= 1:
+                st.info(f"🔵 **RECOMMENDATION: LOW/MODERATE RISK.** {target_player_sel} has {survival_prob}% survival odds to reach Pick {next_pick_num}. Reasonable candidate to let ride across turn.")
+            elif survival_prob >= 40 or safety_count >= 1:
+                st.warning(f"⚠️ **RECOMMENDATION: HIGH SNIPE RISK (<60%).** {target_player_sel} has only **{survival_prob}%** survival odds to reach Pick {next_pick_num}. Backup options: {', '.join(safety_net_pool['Player'].tolist()[:3]) if safety_count > 0 else 'None'}.")
             else:
-                st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at high risk of being sniped before Pick {next_pick_num} (Survival: {survival_prob}%). Pull the trigger now if you want him.")
+                st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at critical risk of being sniped before Pick {next_pick_num} (Survival: {survival_prob}%). Pull the trigger now.")
                 
             if safety_count > 0:
                 st.markdown("##### 🛡️ Safety Net Alternatives Available at Your Next Pick Slot:")
@@ -297,7 +373,7 @@ if players_df is not None:
         st.markdown("---")
         st.subheader("🔥 Top 25 Best Available Players")
         st.dataframe(
-            df_undrafted[['Draft_Rank', 'Player', 'Pos_RK', 'Pos', 'FPS', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].head(25),
+            df_undrafted[['Draft_Rank', 'Player', 'Pos_RK', 'Pos', 'FPS', 'Bonus_PTS', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].head(25),
             use_container_width=True
         )
 
@@ -334,7 +410,7 @@ if players_df is not None:
             df_tv['Rank_Surplus'] = df_tv['FP_Rank'] - df_tv['True_Rank']
             
         st.dataframe(
-            df_tv[['True_Rank', 'Player', 'Pos_RK', 'Pos', 'FPS', '10th_Floor', '90th_Ceiling', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].dropna(subset=['Player']), 
+            df_tv[['True_Rank', 'Player', 'Pos_RK', 'Pos', 'FPS', 'Bonus_PTS', '10th_Floor', '90th_Ceiling', 'True_VORP', 'FP_Rank', 'Rank_Surplus']].dropna(subset=['Player']), 
             use_container_width=True
         )
 
@@ -375,7 +451,7 @@ if players_df is not None:
                 tgt_scale = (new_tgt_share / base_tgt_share) if base_tgt_share > 0 else 1.0
                 rush_scale = (new_rush_share / base_rush_share) if base_rush_share > 0 else 1.0
                 
-                base_rec_pts = (row['REC']*0.5 + row['RECV YARDS']*0.1 + row['RECV TD']*6.0) if pd.notna(row['REC']) else 0.0
+                base_rec_pts = (row['REC']*1.0 + row['RECV YARDS']*0.1 + row['RECV TD']*6.0) if pd.notna(row['REC']) else 0.0
                 base_rush_pts = (row['RUSH YARDS']*0.1 + row['RUSH TD']*6.0) if pd.notna(row['RUSH YARDS']) else 0.0
                 base_pass_pts = (row['PASS YARDS']*0.04 + row['PASS TD']*6.0 + row['COMP']*0.1 - row['INT']*1.0) if pd.notna(row['PASS YARDS']) else 0.0
                 
@@ -442,7 +518,7 @@ if players_df is not None:
                 rec_tds = c_row['RECV TD'] if pd.notna(c_row['RECV TD']) else 0.0
                 recs = c_row['REC'] if pd.notna(c_row['REC']) else 0.0
                 
-                c_fps = recs*0.5 + rec_yds*0.1 + rec_tds*6.0
+                c_fps = recs*1.0 + rec_yds*0.1 + rec_tds*6.0
                 stack_total = qb_fps + c_fps
                 
                 # Retrieve ranks & surplus
