@@ -15,16 +15,33 @@ st.set_page_config(
 
 STATE_FILE = 'draft_state.json'
 
-# LOCKED-IN LEAGUE KEEPERS FOR AUGUST 15 DRAFT
-DEFAULT_KEEPERS = [
-    "Ashton Jeanty", "TreVeyon Henderson", "Puka Nacua", "Saquon Barkley",
-    "Jahmyr Gibbs", "Jaxon Smith-Njigba", "Justin Jefferson", "Tyler Warren",
-    "Christian McCaffrey", "Brock Bowers", "Davante Adams", "Ja'Marr Chase",
-    "De'Von Achane", "Derrick Henry", "Terry McLaurin", "Amon-Ra St. Brown",
-    "James Cook", "Bijan Robinson", "Jonathan Taylor", "Javonte Williams",
-    "Michael Pittman", "Omarion Hampton"
-]
+# LOCKED-IN LEAGUE KEEPERS MAPPED TO EXACT OVERALL PICK NUMBERS
+KEEPER_PICK_MAPPING = {
+    3: "Jahmyr Gibbs",           # Team 3 (Torta Pounder)
+    5: "Ja'Marr Chase",          # Team 5 (F'ready set go)
+    7: "Bijan Robinson",         # Team 7 (Patronessy)
+    8: "Puka Nacua",             # Team 8 (Saquon Deez Nutz)
+    16: "Justin Jefferson",      # Team 9 (Collins outta here nico)
+    18: "Jonathan Taylor",       # Team 7 (Patronessy)
+    22: "Jaxon Smith-Njigba",    # Team 3 (Torta Pounder)
+    23: "Christian McCaffrey",   # Team 2 (Bring me My Flowers)
+    24: "Amon-Ra St. Brown",     # Team 1 (SSG John 'Four Leaf' Tayback)
+    25: "James Cook",            # Team 1 (SSG John 'Four Leaf' Tayback)
+    28: "Ashton Jeanty",         # Team 4 (Last Place Chronicles)
+    29: "De'Von Achane",         # Team 5 (F'ready set go)
+    39: "Omarion Hampton",       # Team 10 (MY TEAM)
+    41: "Saquon Barkley",        # Team 8 (Saquon Deez Nutz)
+    47: "Brock Bowers",          # Team 2 (Bring me My Flowers)
+    54: "Derrick Henry",         # Team 6 (Team Gregory)
+    61: "Davante Adams",         # Team 12 (Bush Wookies)
+    62: "Javonte Williams",      # Team 11 (Jimmy's scary team)
+    67: "Terry McLaurin",        # Team 6 (Team Gregory)
+    76: "TreVeyon Henderson",    # Team 4 (Last Place Chronicles)
+    81: "Tyler Warren",          # Team 9 (Collins outta here nico)
+    107: "Michael Pittman"       # Team 11 (Jimmy's scary team)
+}
 
+DEFAULT_KEEPERS = list(KEEPER_PICK_MAPPING.values())
 DEFAULT_MY_SQUAD = ["Omarion Hampton"]
 
 # 12-TEAM SNAKE DRAFT PICK MATRIX MAPPING (180 PICKS)
@@ -195,7 +212,7 @@ if 'my_watchlist' not in st.session_state:
     st.session_state.my_watchlist = saved_state.get('my_watchlist', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Auto-Sniper Engine, 12-Team Need Tracker & Dynamic VORP Co-Pilot")
+st.caption("Precision Pick-to-Team Mapping, Auto-Sniper Engine & Dynamic VORP Co-Pilot")
 
 # Global Master Processing for Base Rankings
 if players_df is not None:
@@ -237,13 +254,19 @@ if players_df is not None:
     df_calc['True_Rank'] = df_calc.index + 1
     df_calc['Rank_Surplus'] = df_calc['FP_Rank'] - df_calc['True_Rank']
 
-# BUILD AUTO-SNIPER OPPONENT ROSTER MATRIX (TEAMS 1 TO 12)
+# BUILD ACCURATE LEAGUE TEAM ROSTER MATRIX
 team_rosters = {i: [] for i in range(1, 13)}
 
-# Map drafted players to their pick index order
-for pick_idx, p_name in enumerate(st.session_state.drafted_all):
-    assigned_pick = pick_idx + 1
-    assigned_team = PICK_TO_TEAM_MAP.get(assigned_pick, 1)
+# Assign keepers directly by their exact forfeited pick number
+for p_num, p_name in KEEPER_PICK_MAPPING.items():
+    assigned_team = PICK_TO_TEAM_MAP.get(p_num, 1)
+    team_rosters[assigned_team].append(p_name)
+
+# Assign live draft selections made during the draft (picks not in pre-set keepers)
+live_drafted = [p for p in st.session_state.drafted_all if p not in DEFAULT_KEEPERS]
+for idx, p_name in enumerate(live_drafted):
+    live_pick_num = len(DEFAULT_KEEPERS) + idx + 1
+    assigned_team = PICK_TO_TEAM_MAP.get(live_pick_num, 10)
     team_rosters[assigned_team].append(p_name)
 
 # --- SIDEBAR: LIVE DRAFT LOG, WATCHLIST & CONTROLS ---
@@ -374,11 +397,9 @@ if players_df is not None:
         scheduled_picks = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
         next_my_pick = next((p for p in scheduled_picks if p >= current_pick_num), scheduled_picks[-1])
         
-        # Identify teams picking between current_pick_num and next_my_pick
         turn_picks = list(range(current_pick_num, next_my_pick))
         turn_teams = list(set([PICK_TO_TEAM_MAP.get(p, 1) for p in turn_picks if PICK_TO_TEAM_MAP.get(p, 1) != 10]))
         
-        # Count positions drafted by turn teams
         turn_qbs_count, turn_rbs_count, turn_wrs_count, turn_tes_count = 0, 0, 0, 0
         for t_id in turn_teams:
             t_players = team_rosters[t_id]
@@ -404,7 +425,6 @@ if players_df is not None:
             
             fp_buffer = target_fp_rank - next_pick_num
             
-            # Base Survival Calculation
             if fp_buffer >= 10:
                 survival_prob = min(95, 75 + int(fp_buffer * 1.5))
             elif fp_buffer >= 0:
@@ -412,13 +432,12 @@ if players_df is not None:
             else:
                 survival_prob = max(5, 40 + int(fp_buffer * 3.0))
                 
-            # Dynamic Need-Weighted Auto-Blockade Logic
             blockade_active = False
-            if target_pos == 'QB' and (turn_qbs_count >= len(turn_teams) * 1.5 or len(turn_teams) == 0):
+            if target_pos == 'QB' and (turn_qbs_count >= len(turn_teams) * 1.0 or len(turn_teams) == 0):
                 blockade_active = True
-            elif target_pos == 'RB' and turn_rbs_count >= len(turn_teams) * 2.5:
+            elif target_pos == 'RB' and turn_rbs_count >= len(turn_teams) * 2.0:
                 blockade_active = True
-            elif target_pos == 'WR' and turn_wrs_count >= len(turn_teams) * 3.0:
+            elif target_pos == 'WR' and turn_wrs_count >= len(turn_teams) * 2.5:
                 blockade_active = True
                 
             if blockade_active:
@@ -447,7 +466,7 @@ if players_df is not None:
             else:
                 st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at critical risk of being sniped before Pick {next_pick_num} (Survival: {survival_prob}%). Pull the trigger now.")
 
-        # EXPANDER: LIVE LEAGUE ROSTER & NEED TRACKER
+        # EXPANDER: LIVE ACCURATE LEAGUE ROSTER & NEED DASHBOARD
         with st.expander("🕵️ Live Opponent Roster & Need Dashboard (Teams 1 - 12)", expanded=False):
             team_cols = st.columns(4)
             for t_idx in range(1, 13):
@@ -462,7 +481,7 @@ if players_df is not None:
                 
                 col.markdown(f"**Team #{t_idx}{' (YOU)' if t_idx==10 else ''}**")
                 col.caption(f"QBs: {qb_c} | RBs: {rb_c} | WRs: {wr_c} | TEs: {te_c}")
-                col.caption(f"Roster: {', '.join(t_p_names[:4]) if t_p_names else 'None'}")
+                col.caption(f"Keepers/Roster: {', '.join(t_p_names) if t_p_names else 'None'}")
                 col.markdown("---")
 
         st.markdown("---")
