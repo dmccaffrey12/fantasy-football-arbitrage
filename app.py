@@ -15,6 +15,9 @@ st.set_page_config(
 
 STATE_FILE = 'draft_state.json'
 
+# HARDCODED EXACT DRAFT PICK SCHEDULE FOR YOUR TEAM (#10 SLOT)
+MY_HARDCODED_PICKS = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
+
 # LOCKED-IN LEAGUE KEEPERS MAPPED TO EXACT OVERALL PICK NUMBERS
 KEEPER_PICK_MAPPING = {
     3: "Jahmyr Gibbs",           # Team 3 (Torta Pounder)
@@ -91,11 +94,17 @@ def handle_draft_me(p_name):
         st.session_state.drafted_all.append(p_name)
     if p_name not in st.session_state.my_roster:
         st.session_state.my_roster.append(p_name)
+    if 'widget_drafted_multiselect' in st.session_state and p_name not in st.session_state.widget_drafted_multiselect:
+        st.session_state.widget_drafted_multiselect.append(p_name)
+    if 'widget_roster_multiselect' in st.session_state and p_name not in st.session_state.widget_roster_multiselect:
+        st.session_state.widget_roster_multiselect.append(p_name)
     save_draft_state()
 
 def handle_mark_taken(p_name):
     if p_name not in st.session_state.drafted_all:
         st.session_state.drafted_all.append(p_name)
+    if 'widget_drafted_multiselect' in st.session_state and p_name not in st.session_state.widget_drafted_multiselect:
+        st.session_state.widget_drafted_multiselect.append(p_name)
     save_draft_state()
 
 @st.cache_data
@@ -225,7 +234,7 @@ if 'my_watchlist' not in st.session_state:
     st.session_state.my_watchlist = saved_state.get('my_watchlist', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Precision Pick-to-Team Mapping, Auto-Sniper Engine & Dynamic VORP Co-Pilot")
+st.caption("Decay-Rate Auto-Sniper, Hardcoded Pick Schedule & Dynamic VORP Co-Pilot")
 
 # Global Master Processing for Base Rankings
 if players_df is not None:
@@ -270,19 +279,17 @@ if players_df is not None:
 # BUILD ACCURATE LEAGUE TEAM ROSTER MATRIX
 team_rosters = {i: [] for i in range(1, 13)}
 
-# Assign keepers directly by their exact forfeited pick number
 for p_num, p_name in KEEPER_PICK_MAPPING.items():
     assigned_team = PICK_TO_TEAM_MAP.get(p_num, 1)
     team_rosters[assigned_team].append(p_name)
 
-# Assign live draft selections made during the draft
 live_drafted = [p for p in st.session_state.drafted_all if p not in DEFAULT_KEEPERS]
 for idx, p_name in enumerate(live_drafted):
     live_pick_num = idx + 1
     assigned_team = PICK_TO_TEAM_MAP.get(live_pick_num, 10)
     team_rosters[assigned_team].append(p_name)
 
-# SIDEBAR WIDGET CALLBACK HANDLERS (Clean State Sync)
+# SIDEBAR WIDGET CALLBACK HANDLERS
 def on_drafted_multiselect_change():
     st.session_state.drafted_all = st.session_state.widget_drafted_multiselect
     save_draft_state()
@@ -325,7 +332,6 @@ with st.sidebar:
         
     st.markdown("---")
     
-    # Cross off drafted players across the league
     st.multiselect(
         "Cross Off Drafted Players / Keepers", 
         all_player_names, 
@@ -355,6 +361,10 @@ with st.sidebar:
         st.session_state.drafted_all = DEFAULT_KEEPERS
         st.session_state.my_roster = DEFAULT_MY_SQUAD
         st.session_state.my_watchlist = []
+        if "widget_drafted_multiselect" in st.session_state:
+            st.session_state.widget_drafted_multiselect = DEFAULT_KEEPERS
+        if "widget_roster_multiselect" in st.session_state:
+            st.session_state.widget_roster_multiselect = DEFAULT_MY_SQUAD
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
         st.rerun()
@@ -368,7 +378,7 @@ if players_df is not None:
         "🤝 Preseason Trade Spy"
     ])
 
-    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & AUTO-SNIPER SPY ---
+    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & HARDCODED AUTO-SNIPER ---
     with tabs[0]:
         st.header("⚡ Live Draft Scarcity & Auto-Sniper Intelligence Board")
         
@@ -414,9 +424,9 @@ if players_df is not None:
             
         st.markdown("---")
         
-        # AUTO-CALCULATE TURN MANAGERS & POSITIONAL DEMAND
-        scheduled_picks = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
-        next_my_pick = next((p for p in scheduled_picks if p >= live_pick_num), scheduled_picks[-1])
+        # HARDCODED TURN MATRIX & DECAY SURVIVAL ENGINE
+        next_my_pick = next((p for p in MY_HARDCODED_PICKS if p >= live_pick_num), MY_HARDCODED_PICKS[-1])
+        n_picks_elapsed = max(1, next_my_pick - live_pick_num)
         
         turn_picks = list(range(live_pick_num, next_my_pick))
         turn_teams = list(set([PICK_TO_TEAM_MAP.get(p, 1) for p in turn_picks if PICK_TO_TEAM_MAP.get(p, 1) != 10]))
@@ -430,8 +440,10 @@ if players_df is not None:
             turn_wrs_count += len(df_t_roster[df_t_roster['Pos'] == 'WR'])
             turn_tes_count += len(df_t_roster[df_t_roster['Pos'] == 'TE'])
             
-        st.subheader("⚖️ Auto-Sniper Engine (Automated Need-Weighted Turn Spy)")
-        st.caption(f"🕵️ **Turn Intelligence (Picks #{live_pick_num} to #{next_my_pick}):** Evaluating Rival Teams **{', '.join([f'Team {t}' for t in turn_teams]) if turn_teams else 'None (You are On the Clock!)'}**")
+        st.subheader("⚖️ Decay-Rate Auto-Sniper Engine (Your Hardcoded Schedule)")
+        
+        turn_type_str = f"⚡ **SHORT TURN GAP** ({n_picks_elapsed} Picks Elapsing)" if n_picks_elapsed <= 5 else f"⏳ **LONG TURN GAP** ({n_picks_elapsed} Picks Elapsing across round turn)"
+        st.caption(f"🕵️ **Turn Intelligence (Live Pick #{live_pick_num} ──> Your Target Pick #{next_my_pick}):** {turn_type_str}")
         
         calc_col1, calc_col2 = st.columns(2)
         target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:300], index=min(0, len(df_undrafted)-1))
@@ -446,19 +458,32 @@ if players_df is not None:
             
             fp_buffer = target_fp_rank - next_pick_num
             
-            if fp_buffer >= 10:
-                survival_prob = min(95, 75 + int(fp_buffer * 1.5))
+            # Base Buffer Survival Probability
+            if fp_buffer >= 20:
+                base_prob = 0.95
+            elif fp_buffer >= 10:
+                base_prob = 0.85 + (fp_buffer - 10) * 0.01
             elif fp_buffer >= 0:
-                survival_prob = max(40, 50 + int(fp_buffer * 2.5))
+                base_prob = 0.50 + (fp_buffer * 0.035)
+            elif fp_buffer >= -5:
+                base_prob = 0.20 + ((fp_buffer + 5) * 0.06)
             else:
-                survival_prob = max(5, 40 + int(fp_buffer * 3.0))
+                base_prob = max(0.02, 0.20 + (fp_buffer * 0.04))
+                
+            # Apply Turn Gap Decay Model
+            if n_picks_elapsed <= 5:
+                survival_prob = min(98, int((base_prob * 1.25 + 0.10) * 100))
+            elif n_picks_elapsed >= 18:
+                survival_prob = max(5, int((base_prob * 0.70 - 0.10) * 100))
+            else:
+                survival_prob = int(base_prob * 100)
                 
             blockade_active = False
-            if target_pos == 'QB' and (turn_qbs_count >= len(turn_teams) * 1.0 or len(turn_teams) == 0):
+            if target_pos == 'QB' and (turn_qbs_count >= max(1, len(turn_teams) * 1.0) or len(turn_teams) == 0):
                 blockade_active = True
-            elif target_pos == 'RB' and turn_rbs_count >= len(turn_teams) * 2.0:
+            elif target_pos == 'RB' and turn_rbs_count >= max(2, len(turn_teams) * 2.0):
                 blockade_active = True
-            elif target_pos == 'WR' and turn_wrs_count >= len(turn_teams) * 2.5:
+            elif target_pos == 'WR' and turn_wrs_count >= max(2, len(turn_teams) * 2.5):
                 blockade_active = True
                 
             if blockade_active:
@@ -475,17 +500,17 @@ if players_df is not None:
             m_s1, m_s2, m_s3, m_s4 = st.columns(4)
             m_s1.metric("Target FP ECR Rank", int(target_fp_rank) if pd.notna(target_fp_rank) else "N/A")
             m_s2.metric("Effective Unkept Rank", int(target_true_rank))
-            m_s3.metric("Auto-Snipe Survival Odds", f"{survival_prob}%")
+            m_s3.metric("Hardcoded Survival Odds", f"{survival_prob}%")
             m_s4.metric("Safety Net Alternatives", f"{safety_count} Players")
             
             if survival_prob >= 75 and safety_count >= 2:
-                st.success(f"🟢 **RECOMMENDATION: SAFE TO WAIT.** {target_player_sel} has high survival odds ({survival_prob}%) to reach Pick {next_pick_num}. Harvest surplus!")
+                st.success(f"🟢 **RECOMMENDATION: SAFE TO WAIT.** {target_player_sel} has high survival odds ({survival_prob}%) across this {n_picks_elapsed}-pick turn gap to Pick #{next_pick_num}. Harvest surplus!")
             elif survival_prob >= 60 and safety_count >= 1:
-                st.info(f"🔵 **RECOMMENDATION: LOW/MODERATE RISK.** {target_player_sel} has {survival_prob}% survival odds to reach Pick {next_pick_num}. Reasonable candidate to let ride.")
+                st.info(f"🔵 **RECOMMENDATION: LOW/MODERATE RISK.** {target_player_sel} has {survival_prob}% survival odds to reach Pick #{next_pick_num}. Reasonable candidate to let ride.")
             elif survival_prob >= 40 or safety_count >= 1:
-                st.warning(f"⚠️ **RECOMMENDATION: HIGH SNIPE RISK (<60%).** {target_player_sel} has only **{survival_prob}%** survival odds to reach Pick {next_pick_num}. Backup options: {', '.join(safety_net_pool['Player'].tolist()[:3]) if safety_count > 0 else 'None'}.")
+                st.warning(f"⚠️ **RECOMMENDATION: HIGH SNIPE RISK (<60%).** {target_player_sel} has only **{survival_prob}%** survival odds across this {n_picks_elapsed}-pick turn gap to Pick #{next_pick_num}. Backup options: {', '.join(safety_net_pool['Player'].tolist()[:3]) if safety_count > 0 else 'None'}.")
             else:
-                st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at critical risk of being sniped before Pick {next_pick_num} (Survival: {survival_prob}%). Pull the trigger now.")
+                st.error(f"🔴 **RECOMMENDATION: DRAFT NOW.** {target_player_sel} is at critical risk of being sniped across this long {n_picks_elapsed}-pick turn gap before Pick #{next_pick_num} (Survival: {survival_prob}%). Pull the trigger now.")
 
         # EXPANDER: LIVE ACCURATE LEAGUE ROSTER & NEED DASHBOARD
         with st.expander("🕵️ Live Opponent Roster & Need Dashboard (Teams 1 - 12)", expanded=False):
