@@ -184,7 +184,7 @@ if 'my_watchlist' not in st.session_state:
     st.session_state.my_watchlist = saved_state.get('my_watchlist', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Pre-Loaded 22 Keepers, 1.0 PPR, Milestone Bonuses & Dynamic VORP Co-Pilot")
+st.caption("Pre-Loaded Keepers, Turn Need-Weighted Snipe Spy & Dynamic VORP Co-Pilot")
 
 # Global Master Processing for Base Rankings
 if players_df is not None:
@@ -232,7 +232,6 @@ with st.sidebar:
     
     all_player_names = players_df['Player'].tolist() if players_df is not None else []
     
-    # Live Draft Counter Metrics
     total_drafted_count = len(st.session_state.drafted_all)
     current_pick_num = total_drafted_count + 1
     current_round_num = ((current_pick_num - 1) // 12) + 1
@@ -257,7 +256,7 @@ with st.sidebar:
         
     st.markdown("---")
     
-    # Cross off drafted players across the league (Pre-loaded with 22 keepers)
+    # Cross off drafted players across the league
     drafted_input = st.multiselect(
         "Cross Off Drafted Players / Keepers", 
         all_player_names, 
@@ -287,7 +286,7 @@ with st.sidebar:
         save_draft_state()
         st.success("Saved to disk!")
         
-    if col_btn2.button("🔄 Reset to Default Keepers"):
+    if col_btn2.button("🔄 Reset Keepers"):
         st.session_state.drafted_all = DEFAULT_KEEPERS
         st.session_state.my_roster = DEFAULT_MY_SQUAD
         st.session_state.my_watchlist = []
@@ -296,16 +295,16 @@ with st.sidebar:
         st.rerun()
 
 if players_df is not None:
+    # UPDATED: 5 Clean Tabs (Opponent Keeper Spy Removed)
     tabs = st.tabs([
         "⚡ Live Draft Scarcity Monitor", 
         "🎯 True VORP Board", 
         "🌊 Volumetric Ripple Engine", 
         "⚡ QB Stacking Matrix", 
-        "🕵️ Opponent Keeper Spy",
         "🤝 Preseason Trade Spy"
     ])
 
-    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & QUICK ACTION BOARD ---
+    # --- TAB 0: LIVE DRAFT SCARCITY MONITOR & NEED-WEIGHTED SNIPE SPY ---
     with tabs[0]:
         st.header("⚡ Live Draft Scarcity & One-Click Execution Board")
         
@@ -350,30 +349,47 @@ if players_df is not None:
             st.success("✅ Positional supply is balanced across remaining unkept tiers.")
             
         st.markdown("---")
-        st.subheader("⚖️ Snipe Risk Calculator (Turn Tracker)")
+        st.subheader("⚖️ Opponent Need-Weighted Snipe Risk Spy")
         
         calc_col1, calc_col2 = st.columns(2)
         target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:150], index=min(0, len(df_undrafted)-1))
         
         scheduled_picks = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
         next_my_pick = next((p for p in scheduled_picks if p >= current_pick_num), scheduled_picks[-1])
-        
         next_pick_num = calc_col2.number_input("Target Pick Slot", min_value=1, max_value=200, value=next_my_pick, step=1)
+        
+        # TURN SPY MANAGER NEED OVERRIDES
+        st.caption("🕵️ **Turn Manager Need Overrides:** Check positions already filled by managers picking between your turns to discount snipe risk:")
+        col_n1, col_n2, col_n3, col_n4 = st.columns(4)
+        turn_qbs_filled = col_n1.checkbox("Turn Managers Filled QBs (Zero QB Demand)", value=False)
+        turn_rbs_filled = col_n2.checkbox("Turn Managers Filled RBs (Zero RB Demand)", value=False)
+        turn_wrs_filled = col_n3.checkbox("Turn Managers Filled WRs (Zero WR Demand)", value=False)
+        turn_tes_filled = col_n4.checkbox("Turn Managers Filled TEs (Zero TE Demand)", value=False)
         
         if target_player_sel:
             p_data = df_undrafted[df_undrafted['Player'] == target_player_sel].iloc[0]
+            target_pos = p_data['Pos']
             target_fp_rank = p_data['FP_Rank'] if pd.notna(p_data['FP_Rank']) else p_data['Effective_Unkept_Rank']
             target_true_rank = p_data['Effective_Unkept_Rank']
             target_vorp = p_data['True_VORP']
             
             fp_buffer = target_fp_rank - next_pick_num
             
+            # Base Survival Calculation
             if fp_buffer >= 10:
                 survival_prob = min(95, 75 + int(fp_buffer * 1.5))
             elif fp_buffer >= 0:
                 survival_prob = max(40, 50 + int(fp_buffer * 2.5))
             else:
                 survival_prob = max(5, 40 + int(fp_buffer * 3.0))
+                
+            # Apply Need-Weighted Multiplier
+            if (target_pos == 'QB' and turn_qbs_filled) or \
+               (target_pos == 'RB' and turn_rbs_filled) or \
+               (target_pos == 'WR' and turn_wrs_filled) or \
+               (target_pos == 'TE' and turn_tes_filled):
+                survival_prob = min(98, survival_prob + 35)
+                st.info(f"🛡️ **POSITIONAL BLOCKADE ACTIVE:** Turn managers have zero demand for **{target_pos}**. Survival odds boosted to **{survival_prob}%**!")
                 
             safety_net_pool = df_undrafted[
                 (df_undrafted['Player'] != target_player_sel) & 
@@ -385,7 +401,7 @@ if players_df is not None:
             m_s1, m_s2, m_s3, m_s4 = st.columns(4)
             m_s1.metric("Target FP ECR Rank", int(target_fp_rank) if pd.notna(target_fp_rank) else "N/A")
             m_s2.metric("Effective Unkept Rank", int(target_true_rank))
-            m_s3.metric("Estimated Survival Odds", f"{survival_prob}%")
+            m_s3.metric("Adjusted Survival Odds", f"{survival_prob}%")
             m_s4.metric("Safety Net Alternatives", f"{safety_count} Players")
             
             if survival_prob >= 75 and safety_count >= 2:
@@ -590,7 +606,6 @@ if players_df is not None:
                 c_fps = recs*1.0 + rec_yds*0.1 + rec_tds*6.0
                 stack_total = qb_fps + c_fps
                 
-                # Retrieve ranks & surplus
                 c_info = df_calc[df_calc['Player'] == c_name]
                 c_rank = int(c_info['True_Rank'].values[0]) if not c_info.empty and 'True_Rank' in c_info.columns else 999
                 fp_rank = int(c_info['FP_Rank'].values[0]) if not c_info.empty and 'FP_Rank' in c_info.columns and pd.notna(c_info['FP_Rank'].values[0]) else 999
@@ -611,7 +626,6 @@ if players_df is not None:
             df_stacks = pd.DataFrame(stack_data).sort_values(by='Combined Stack FPS', ascending=False)
             st.dataframe(df_stacks, use_container_width=True)
             
-            # Double Stack Calculator
             st.markdown("---")
             st.subheader("⚡ Double-Stack Multiplier Calculator")
             selected_catchers = st.multiselect("Select 2 Catcher Partners for Double Stack", df_catchers['PLAYER'].tolist(), default=df_catchers['PLAYER'].tolist()[:2] if len(df_catchers) >= 2 else df_catchers['PLAYER'].tolist())
@@ -628,39 +642,7 @@ if players_df is not None:
                 
                 st.success(f"🔥 Holding {sel_qb} + {', '.join(selected_catchers)} captures **{round(combined_tgt_share*100, 1)}%** of {qb_team}'s entire passing volume!")
 
-    # --- TAB 4: OPPONENT KEEPER SPY ---
+    # --- TAB 4: PRESEASON TRADE SPY ---
     with tabs[4]:
-        st.header("4. Opponent Keeper & Trade Arbitrage Spy")
-        search_player = st.selectbox("Select Player on Opponent Roster", players_df['Player'].tolist(), key="spy_player")
-        
-        if search_player:
-            p_data = df_calc[df_calc['Player'] == search_player]
-            if not p_data.empty:
-                row = p_data.iloc[0]
-                
-                # Fetch Monte Carlo metrics
-                mc_p = run_monte_carlo_sims(p_data).iloc[0]
-                
-                m1, m2, m3, m4 = st.columns(4)
-                
-                fp_rank_val = int(row['FP_Rank']) if 'FP_Rank' in row and pd.notna(row['FP_Rank']) else "N/A"
-                true_rank_val = int(row['True_Rank']) if 'True_Rank' in row and pd.notna(row['True_Rank']) else "N/A"
-                surplus_val = int(row['Rank_Surplus']) if 'Rank_Surplus' in row and pd.notna(row['Rank_Surplus']) else "N/A"
-                
-                m1.metric("Custom True Rank", true_rank_val)
-                m2.metric("FantasyPros Rank", fp_rank_val)
-                m3.metric("Rank Surplus", f"+{surplus_val}" if isinstance(surplus_val, int) and surplus_val > 0 else surplus_val)
-                m4.metric("Baseline FPS (90th % Ceiling)", f"{round(row['FPS'], 1)} ({round(mc_p['90th_Ceiling'], 1)})")
-                
-                if isinstance(surplus_val, (int, float)):
-                    if surplus_val > 15:
-                        st.success(f"🔥 **TRADE TARGET / BUY LOW:** FantasyPros ranks {search_player} much later than your custom model (Surplus: +{surplus_val} picks).")
-                    elif surplus_val < -15:
-                        st.warning(f"⚠️ **OVERVALUED BY FP:** FantasyPros overvalues {search_player} relative to your scoring. Great player to trade AWAY or let them keep.")
-                    else:
-                        st.info(f"⚖️ **FAIR MARKET:** {search_player} is priced similarly across both systems.")
-
-    # --- TAB 5: PRESEASON TRADE SPY ---
-    with tabs[5]:
         df_undrafted_calc = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].reset_index(drop=True)
         render_trade_analyzer(df_calc, df_undrafted_calc, run_monte_carlo_sims)
