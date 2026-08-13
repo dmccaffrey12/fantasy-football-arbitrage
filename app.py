@@ -15,6 +15,18 @@ st.set_page_config(
 
 STATE_FILE = 'draft_state.json'
 
+# LOCKED-IN LEAGUE KEEPERS FOR AUGUST 15 DRAFT
+DEFAULT_KEEPERS = [
+    "Ashton Jeanty", "TreVeyon Henderson", "Puka Nacua", "Saquon Barkley",
+    "Jahmyr Gibbs", "Jaxon Smith-Njigba", "Justin Jefferson", "Tyler Warren",
+    "Christian McCaffrey", "Brock Bowers", "Davante Adams", "Ja'Marr Chase",
+    "De'Von Achane", "Derrick Henry", "Terry McLaurin", "Amon-Ra St. Brown",
+    "James Cook", "Bijan Robinson", "Jonathan Taylor", "Javonte Williams",
+    "Michael Pittman", "Omarion Hampton"
+]
+
+DEFAULT_MY_SQUAD = ["Omarion Hampton"]
+
 # Helper function to save draft state to disk
 def save_draft_state():
     state_data = {
@@ -33,7 +45,7 @@ def load_draft_state():
                 return json.load(f)
         except Exception:
             pass
-    return {'drafted_all': [], 'my_roster': [], 'my_watchlist': []}
+    return {'drafted_all': DEFAULT_KEEPERS, 'my_roster': DEFAULT_MY_SQUAD, 'my_watchlist': []}
 
 # Helper function to clean suffixes for robust matching
 def clean_player_name(name):
@@ -68,7 +80,6 @@ def calculate_player_bonuses(team_data):
             rec_yds = float(row['RECV YARDS']) if pd.notna(row.get('RECV YARDS')) and isinstance(row.get('RECV YARDS'), (int, float)) else 0.0
             rec_td = float(row['RECV TD']) if pd.notna(row.get('RECV TD')) and isinstance(row.get('RECV TD'), (int, float)) else 0.0
             
-            # 1. Passing Game Bonuses: 300-399 (+2), 400+ (+3)
             p_bonus = 0.0
             if pass_yds > 0:
                 avg_p_yds = pass_yds / games
@@ -77,7 +88,6 @@ def calculate_player_bonuses(team_data):
                 b400 = np.mean(np.sum(sims >= 400, axis=1)) * 3.0
                 p_bonus = b300 + b400
                 
-            # 2. Rushing Game Bonuses: 100-199 (+1), 200+ (+2)
             r_bonus = 0.0
             if rush_yds > 0:
                 avg_r_yds = rush_yds / games
@@ -86,7 +96,6 @@ def calculate_player_bonuses(team_data):
                 b200 = np.mean(np.sum(sims >= 200, axis=1)) * 2.0
                 r_bonus = b100 + b200
                 
-            # 3. Receiving Game Bonuses: 100-199 (+1), 200+ (+2)
             c_bonus = 0.0
             if rec_yds > 0:
                 avg_c_yds = rec_yds / games
@@ -95,7 +104,6 @@ def calculate_player_bonuses(team_data):
                 b200c = np.mean(np.sum(sims >= 200, axis=1)) * 2.0
                 c_bonus = b100c + b200c
                 
-            # Long TD Bonuses
             td_p_b = pass_td * (0.10 * 1.0 + 0.06 * 4.0)
             td_r_b = rush_td * (0.08 * 1.0 + 0.04 * 2.0)
             td_c_b = rec_td * (0.12 * 1.0 + 0.08 * 2.0)
@@ -169,14 +177,14 @@ def run_monte_carlo_sims(df, n_sims=2000):
 # Initialize Session State from Disk on First Load
 saved_state = load_draft_state()
 if 'drafted_all' not in st.session_state:
-    st.session_state.drafted_all = saved_state.get('drafted_all', [])
+    st.session_state.drafted_all = saved_state.get('drafted_all', DEFAULT_KEEPERS)
 if 'my_roster' not in st.session_state:
-    st.session_state.my_roster = saved_state.get('my_roster', [])
+    st.session_state.my_roster = saved_state.get('my_roster', DEFAULT_MY_SQUAD)
 if 'my_watchlist' not in st.session_state:
     st.session_state.my_watchlist = saved_state.get('my_watchlist', [])
 
 st.title("🏈 Fantasy Football Arbitrage & Intelligence Engine")
-st.caption("Live Draft Execution Dashboard, Dynamic VORP & Snipe Risk Co-Pilot")
+st.caption("Pre-Loaded 22 Keepers, 1.0 PPR, Milestone Bonuses & Dynamic VORP Co-Pilot")
 
 # Global Master Processing for Base Rankings
 if players_df is not None:
@@ -230,13 +238,12 @@ with st.sidebar:
     current_round_num = ((current_pick_num - 1) // 12) + 1
     
     m_side1, m_side2 = st.columns(2)
-    m_side1.metric("Current Pick #", f"#{current_pick_num}")
+    m_side1.metric("League Drafted / Kept", f"{total_drafted_count} Players")
     m_side2.metric("Current Round", f"Round {current_round_num}")
     
     st.markdown("---")
     st.subheader("📌 On-the-Clock Target Watchlist")
     
-    # Filter watchlist to only undrafted
     active_watchlist_options = [p for p in all_player_names if p not in st.session_state.drafted_all]
     watchlist_input = st.multiselect(
         "Bookmark Targets for Next Pick",
@@ -250,11 +257,11 @@ with st.sidebar:
         
     st.markdown("---")
     
-    # Cross off drafted players across the league
+    # Cross off drafted players across the league (Pre-loaded with 22 keepers)
     drafted_input = st.multiselect(
         "Cross Off Drafted Players / Keepers", 
         all_player_names, 
-        default=st.session_state.drafted_all,
+        default=[p for p in st.session_state.drafted_all if p in all_player_names],
         key="drafted_selector"
     )
     if drafted_input != st.session_state.drafted_all:
@@ -267,7 +274,7 @@ with st.sidebar:
     my_squad_input = st.multiselect(
         "Add Player to My Team",
         all_player_names,
-        default=st.session_state.my_roster,
+        default=[p for p in st.session_state.my_roster if p in all_player_names],
         key="my_roster_selector"
     )
     if my_squad_input != st.session_state.my_roster:
@@ -280,9 +287,9 @@ with st.sidebar:
         save_draft_state()
         st.success("Saved to disk!")
         
-    if col_btn2.button("🔄 Reset State"):
-        st.session_state.drafted_all = []
-        st.session_state.my_roster = []
+    if col_btn2.button("🔄 Reset to Default Keepers"):
+        st.session_state.drafted_all = DEFAULT_KEEPERS
+        st.session_state.my_roster = DEFAULT_MY_SQUAD
         st.session_state.my_watchlist = []
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
@@ -302,15 +309,15 @@ if players_df is not None:
     with tabs[0]:
         st.header("⚡ Live Draft Scarcity & One-Click Execution Board")
         
-        # Filter out drafted players
+        # Filter out drafted players & keepers
         df_undrafted = df_calc[~df_calc['Player'].isin(st.session_state.drafted_all)].sort_values(by='True_VORP', ascending=False).reset_index(drop=True)
-        df_undrafted['Draft_Rank'] = df_undrafted.index + 1
+        df_undrafted['Effective_Unkept_Rank'] = df_undrafted.index + 1
         
         if 'FP_Rank' in df_undrafted.columns:
-            df_undrafted['Rank_Surplus'] = df_undrafted['FP_Rank'] - df_undrafted['Draft_Rank']
+            df_undrafted['Rank_Surplus'] = df_undrafted['FP_Rank'] - df_undrafted['Effective_Unkept_Rank']
             
         # Positional Scarcity Metrics
-        st.subheader("📊 Position Supply & Tier Cliff Analysis")
+        st.subheader("📊 Position Supply & Tier Cliff Analysis (Unkept Pool)")
         col_q, col_r, col_w, col_t = st.columns(4)
         
         scarcity_alerts = []
@@ -340,15 +347,14 @@ if players_df is not None:
             for alert in scarcity_alerts:
                 st.warning(alert)
         else:
-            st.success("✅ Positional supply is balanced across remaining tiers.")
+            st.success("✅ Positional supply is balanced across remaining unkept tiers.")
             
         st.markdown("---")
-        st.subheader("⚖️ Snipe Risk Calculator (Automated Turn Tracker)")
+        st.subheader("⚖️ Snipe Risk Calculator (Turn Tracker)")
         
         calc_col1, calc_col2 = st.columns(2)
-        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:150], index=min(4, len(df_undrafted)-1))
+        target_player_sel = calc_col1.selectbox("Target Arbitrage Player", df_undrafted['Player'].tolist()[:150], index=min(0, len(df_undrafted)-1))
         
-        # Determine next pick slot based on Pick #10 slot schedule (10, 15, 34, 39, 58, 63, 82, 87, 106, 111...)
         scheduled_picks = [10, 15, 34, 39, 58, 63, 82, 87, 106, 111, 130, 135, 154, 159, 178]
         next_my_pick = next((p for p in scheduled_picks if p >= current_pick_num), scheduled_picks[-1])
         
@@ -356,13 +362,12 @@ if players_df is not None:
         
         if target_player_sel:
             p_data = df_undrafted[df_undrafted['Player'] == target_player_sel].iloc[0]
-            target_fp_rank = p_data['FP_Rank'] if pd.notna(p_data['FP_Rank']) else p_data['Draft_Rank']
-            target_true_rank = p_data['Draft_Rank']
+            target_fp_rank = p_data['FP_Rank'] if pd.notna(p_data['FP_Rank']) else p_data['Effective_Unkept_Rank']
+            target_true_rank = p_data['Effective_Unkept_Rank']
             target_vorp = p_data['True_VORP']
             
             fp_buffer = target_fp_rank - next_pick_num
             
-            # Survival Probability Calculation
             if fp_buffer >= 10:
                 survival_prob = min(95, 75 + int(fp_buffer * 1.5))
             elif fp_buffer >= 0:
@@ -370,7 +375,6 @@ if players_df is not None:
             else:
                 survival_prob = max(5, 40 + int(fp_buffer * 3.0))
                 
-            # Safety Net Alternatives Search around next_pick_num
             safety_net_pool = df_undrafted[
                 (df_undrafted['Player'] != target_player_sel) & 
                 (df_undrafted['True_VORP'] >= target_vorp - 20.0) &
@@ -378,10 +382,9 @@ if players_df is not None:
             ]
             safety_count = len(safety_net_pool)
             
-            # Metrics display
             m_s1, m_s2, m_s3, m_s4 = st.columns(4)
             m_s1.metric("Target FP ECR Rank", int(target_fp_rank) if pd.notna(target_fp_rank) else "N/A")
-            m_s2.metric("Target Custom Rank", int(target_true_rank))
+            m_s2.metric("Effective Unkept Rank", int(target_true_rank))
             m_s3.metric("Estimated Survival Odds", f"{survival_prob}%")
             m_s4.metric("Safety Net Alternatives", f"{safety_count} Players")
             
@@ -396,8 +399,7 @@ if players_df is not None:
 
         st.markdown("---")
         
-        # FEATURE 4: Position Filter Toggles & FEATURE 1: Quick Action Buttons
-        st.subheader("🔥 Live Best Available Execution Table")
+        st.subheader("🔥 Available Unkept Execution Table")
         
         pos_filter = st.radio("Filter By Position Tier", ["ALL", "QB", "RB", "WR", "TE"], horizontal=True, key="pos_filter_radio")
         
@@ -409,7 +411,7 @@ if players_df is not None:
         
         # Display Quick Execution Table with Inline Buttons
         header_cols = st.columns([1, 3, 1, 1, 1.5, 1.5, 1.5, 1.5])
-        header_cols[0].markdown("**Rank**")
+        header_cols[0].markdown("**Unkept Rk**")
         header_cols[1].markdown("**Player**")
         header_cols[2].markdown("**Pos**")
         header_cols[3].markdown("**FPS**")
@@ -424,7 +426,7 @@ if players_df is not None:
             p_name = row['Player']
             cols = st.columns([1, 3, 1, 1, 1.5, 1.5, 1.5, 1.5])
             
-            cols[0].write(f"#{row['Draft_Rank']}")
+            cols[0].write(f"#{row['Effective_Unkept_Rank']}")
             cols[1].write(f"**{p_name}**")
             cols[2].write(row['Pos_RK'])
             cols[3].write(f"{round(row['FPS'], 1)}")
