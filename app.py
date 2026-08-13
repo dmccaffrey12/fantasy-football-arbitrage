@@ -85,6 +85,19 @@ def clean_player_name(name):
             name_clean = name_clean[:-len(suffix)]
     return name_clean.strip().lower()
 
+# CALLBACK FUNCTIONS FOR INLINE BUTTONS (Run BEFORE widget rendering)
+def handle_draft_me(p_name):
+    if p_name not in st.session_state.drafted_all:
+        st.session_state.drafted_all.append(p_name)
+    if p_name not in st.session_state.my_roster:
+        st.session_state.my_roster.append(p_name)
+    save_draft_state()
+
+def handle_mark_taken(p_name):
+    if p_name not in st.session_state.drafted_all:
+        st.session_state.drafted_all.append(p_name)
+    save_draft_state()
+
 @st.cache_data
 def calculate_player_bonuses(team_data):
     """Simulates milestone game and long TD bonuses across 17-game schedules for all team sheets."""
@@ -335,10 +348,6 @@ with st.sidebar:
         st.session_state.drafted_all = DEFAULT_KEEPERS
         st.session_state.my_roster = DEFAULT_MY_SQUAD
         st.session_state.my_watchlist = []
-        if "drafted_selector" in st.session_state:
-            st.session_state.drafted_selector = DEFAULT_KEEPERS
-        if "my_roster_selector" in st.session_state:
-            st.session_state.my_roster_selector = DEFAULT_MY_SQUAD
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
         st.rerun()
@@ -500,7 +509,7 @@ if players_df is not None:
             
         top_15_board = df_filtered_board.head(15)
         
-        # Display Quick Execution Table with Inline Buttons
+        # Display Quick Execution Table with Inline Buttons using Callback Handlers
         header_cols = st.columns([1, 3, 1, 1, 1.5, 1.5, 1.5, 1.5])
         header_cols[0].markdown("**Unkept Rk**")
         header_cols[1].markdown("**Player**")
@@ -524,24 +533,21 @@ if players_df is not None:
             cols[4].write(f"**+{round(row['True_VORP'], 1)}**")
             cols[5].write(f"#{int(row['FP_Rank'])}" if pd.notna(row['FP_Rank']) else "N/A")
             
-            # Button 1: Draft Me
-            if cols[6].button("🟢 My Pick", key=f"btn_my_{p_name}_{idx}"):
-                if p_name not in st.session_state.drafted_all:
-                    st.session_state.drafted_all.append(p_name)
-                if p_name not in st.session_state.my_roster:
-                    st.session_state.my_roster.append(p_name)
-                st.session_state.drafted_selector = st.session_state.drafted_all
-                st.session_state.my_roster_selector = st.session_state.my_roster
-                save_draft_state()
-                st.rerun()
+            # Button 1: Draft Me with Callback
+            cols[6].button(
+                "🟢 My Pick", 
+                key=f"btn_my_{p_name}_{idx}", 
+                on_click=handle_draft_me, 
+                args=(p_name,)
+            )
                 
-            # Button 2: Cross Off
-            if cols[7].button("🔴 Taken", key=f"btn_off_{p_name}_{idx}"):
-                if p_name not in st.session_state.drafted_all:
-                    st.session_state.drafted_all.append(p_name)
-                st.session_state.drafted_selector = st.session_state.drafted_all
-                save_draft_state()
-                st.rerun()
+            # Button 2: Cross Off with Callback
+            cols[7].button(
+                "🔴 Taken", 
+                key=f"btn_off_{p_name}_{idx}", 
+                on_click=handle_mark_taken, 
+                args=(p_name,)
+            )
 
     # --- TAB 1: TRUE VORP BOARD ---
     with tabs[1]:
