@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
-import json
-import os
 
 st.set_page_config(
     page_title="2026 In-Season Strategic Control Tower", 
@@ -130,24 +128,6 @@ FULL_NFL_SCHEDULE = {
     'KC':  [('DEN', -5.5, 46.0, 'Home'), ('IND', -5.5, 49.5, 'Home'),  ('MIA', -3.5, 49.0, 'Away')]
 }
 
-MY_CURRENT_ROSTER = [
-    {"Player": "Dak Prescott", "Pos": "QB", "Team": "DAL"},
-    {"Player": "Jared Goff", "Pos": "QB", "Team": "DET"},
-    {"Player": "Chase Brown", "Pos": "RB", "Team": "CIN"},
-    {"Player": "Omarion Hampton", "Pos": "RB", "Team": "LAC"},
-    {"Player": "Bucky Irving", "Pos": "RB", "Team": "TB"},
-    {"Player": "Tony Pollard", "Pos": "RB", "Team": "TEN"},
-    {"Player": "RJ Harvey", "Pos": "RB", "Team": "DEN"},
-    {"Player": "Jonah Coleman", "Pos": "RB", "Team": "DEN"},
-    {"Player": "Drake London", "Pos": "WR", "Team": "ATL"},
-    {"Player": "DJ Moore", "Pos": "WR", "Team": "BUF"},
-    {"Player": "Wan'Dale Robinson", "Pos": "WR", "Team": "TEN"},
-    {"Player": "Josh Downs", "Pos": "WR", "Team": "IND"},
-    {"Player": "Jayden Higgins", "Pos": "WR", "Team": "HOU"},
-    {"Player": "Jalen McMillan", "Pos": "WR", "Team": "TB"},
-    {"Player": "Jacksonville D/ST", "Pos": "DST", "Team": "JAX"}
-]
-
 @st.cache_data(ttl=3600)
 def fetch_live_nfl_odds(api_key):
     if not api_key:
@@ -263,9 +243,9 @@ tabs = st.tabs([
     "🤝 Roster Distress & Trade Radar"
 ])
 
-# --- TAB 1: D/ST TERMINAL ---
+# --- TAB 1: D/ST TERMINAL (ALL 32 TEAMS INCLUDED) ---
 with tabs[0]:
-    st.header("🛡️ D/ST Asymmetric Streaming Terminal")
+    st.header("🛡️ D/ST Asymmetric Streaming Terminal (All 32 NFL Defenses)")
     st.caption("Pass-Rush vs. OL Deficit Index, Scheme Tuning & Verified 2026 Schedule")
     
     if 'custom_dst_metrics' not in st.session_state:
@@ -274,7 +254,6 @@ with tabs[0]:
         st.session_state.custom_opp_metrics = DEFAULT_OPPONENT_METRICS.copy()
         
     all_teams_list = sorted(list(FULL_NFL_SCHEDULE.keys()))
-    rostered_defaults = ['CIN', 'BAL', 'SF', 'CLE', 'PIT', 'DAL', 'NYJ', 'HOU', 'BUF', 'KC', 'DET', 'PHI']
     
     with st.expander("🛠️ Dynamic Scheme Tuning & Coaching Overrides", expanded=False):
         col_m1, col_m2 = st.columns(2)
@@ -292,32 +271,33 @@ with tabs[0]:
             st.success(f"Saved {tune_team} updates!")
             st.rerun()
 
-    with st.expander("⚙️ Manage League Waiver Defenses", expanded=False):
-        col_w1, col_w2 = st.columns([2, 1])
-        active_waiver_pool = col_w1.multiselect("Available Waiver D/STs:", all_teams_list, default=[t for t in all_teams_list if t not in rostered_defaults])
-        show_waivers_only = col_w2.checkbox("Filter Rankings: Show Waivers Only", value=True)
-        
-    active_eval_teams = active_waiver_pool if show_waivers_only else all_teams_list
+    # Search filter bar
+    search_q = st.text_input("🔍 Quick Filter Team (e.g. JAX, SEA, DEN, Dallas):", value="").strip().upper()
     
-    st.subheader(f"🔥 Week 1 Streaming Rankings ({'Waivers' if show_waivers_only else 'All 32'})")
+    if search_q:
+        filtered_teams = [t for t in all_teams_list if search_q in t or search_q in NFL_TEAMS.get(t, '').upper()]
+    else:
+        filtered_teams = all_teams_list
+        
+    st.subheader(f"🔥 Week 1 League-Wide D/ST Rankings ({len(filtered_teams)} Teams)")
     rankings_data = []
-    for t_code in active_eval_teams:
+    for t_code in filtered_teams:
         matchup = FULL_NFL_SCHEDULE[t_code][0]
         opp, spread, ou, loc = matchup[0], matchup[1], matchup[2], matchup[3]
         res = calculate_dst_composite_score(t_code, opp, spread, ou, loc == 'Home', st.session_state.custom_dst_metrics, st.session_state.custom_opp_metrics)
         rankings_data.append({
-            'Rank': 0, 'Team': NFL_TEAMS.get(t_code, t_code), 'Week 1 Matchup': f"{'vs' if loc=='Home' else '@'} {opp} ({spread:+.1f})",
+            'Rank': 0, 'Team': NFL_TEAMS.get(t_code, t_code), 'Code': t_code, 'Week 1 Matchup': f"{'vs' if loc=='Home' else '@'} {opp} ({spread:+.1f})",
             'Projected PTS': res['Composite_Score'], 'Exp. Sacks': res['Expected_Sacks'], 'Exp. Turnovers': res['Expected_Takeaways'],
             'Opp. Implied Pts': res['Implied_Opp_Points'], 'Streaming Tier': '🔥 Top Stream (Smash)' if res['Composite_Score'] >= 8.5 else ('🟢 Solid' if res['Composite_Score'] >= 7.0 else '🟡 Risky' if res['Composite_Score'] >= 5.5 else '🔴 Avoid')
         })
     df_board = pd.DataFrame(rankings_data).sort_values(by='Projected PTS', ascending=False).reset_index(drop=True)
     df_board['Rank'] = df_board.index + 1
-    st.dataframe(df_board[['Rank', 'Team', 'Week 1 Matchup', 'Projected PTS', 'Exp. Sacks', 'Exp. Turnovers', 'Opp. Implied Pts', 'Streaming Tier']], use_container_width=True)
+    st.dataframe(df_board[['Rank', 'Team', 'Code', 'Week 1 Matchup', 'Projected PTS', 'Exp. Sacks', 'Exp. Turnovers', 'Opp. Implied Pts', 'Streaming Tier']], use_container_width=True)
     
     st.markdown("---")
-    st.subheader("📅 3-Week Stash & Stream Multi-Week Matrix")
+    st.subheader(f"📅 3-Week Stash & Stream Matrix ({len(filtered_teams)} Teams)")
     multi_data = []
-    for d_code in active_eval_teams:
+    for d_code in filtered_teams:
         weeks = FULL_NFL_SCHEDULE[d_code]
         w1, w2, w3 = weeks[0], weeks[1], weeks[2]
         r1 = calculate_dst_composite_score(d_code, w1[0], w1[1], w1[2], w1[3]=='Home', st.session_state.custom_dst_metrics, st.session_state.custom_opp_metrics)['Composite_Score']
@@ -326,6 +306,7 @@ with tabs[0]:
         avg_3w = round((r1 + r2 + r3) / 3.0, 2)
         multi_data.append({
             'Team': NFL_TEAMS.get(d_code, d_code),
+            'Code': d_code,
             'Week 1': f"{'vs' if w1[3]=='Home' else '@'} {w1[0]} ({r1} pts)",
             'Week 2': f"{'vs' if w2[3]=='Home' else '@'} {w2[0]} ({r2} pts)",
             'Week 3': f"{'vs' if w3[3]=='Home' else '@'} {w3[0]} ({r3} pts)",
