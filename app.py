@@ -22,7 +22,89 @@ NFL_NAME_TO_CODE = {
 
 NFL_TEAMS = {v: k for k, v in NFL_NAME_TO_CODE.items()}
 
-# BASELINE PASS RUSH & PASS PROTECTION PROFILES
+# 2026 IN-SEASON TRADE VALUE DATABASE (SUPERFLEX & 6-PT PASS TD CALIBRATED)
+TRADE_DATABASE = {
+    # Quarterbacks
+    'Josh Allen': {'Pos': 'QB', 'Team': 'BUF', 'Value': 94.0, 'Proj_PPG': 25.2},
+    'Lamar Jackson': {'Pos': 'QB', 'Team': 'BAL', 'Value': 90.5, 'Proj_PPG': 24.1},
+    'Patrick Mahomes': {'Pos': 'QB', 'Team': 'KC', 'Value': 88.0, 'Proj_PPG': 23.5},
+    'Jalen Hurts': {'Pos': 'QB', 'Team': 'PHI', 'Value': 87.0, 'Proj_PPG': 23.2},
+    'Dak Prescott': {'Pos': 'QB', 'Team': 'DAL', 'Value': 84.5, 'Proj_PPG': 22.8},
+    'Joe Burrow': {'Pos': 'QB', 'Team': 'CIN', 'Value': 84.0, 'Proj_PPG': 22.6},
+    'Jayden Daniels': {'Pos': 'QB', 'Team': 'WSH', 'Value': 82.0, 'Proj_PPG': 22.1},
+    'Jared Goff': {'Pos': 'QB', 'Team': 'DET', 'Value': 79.5, 'Proj_PPG': 21.4},
+    'C.J. Stroud': {'Pos': 'QB', 'Team': 'HOU', 'Value': 78.0, 'Proj_PPG': 21.0},
+    'Kyler Murray': {'Pos': 'QB', 'Team': 'ARI', 'Value': 77.5, 'Proj_PPG': 20.8},
+    'Caleb Williams': {'Pos': 'QB', 'Team': 'CHI', 'Value': 74.0, 'Proj_PPG': 19.8},
+    'Jordan Love': {'Pos': 'QB', 'Team': 'GB', 'Value': 73.5, 'Proj_PPG': 19.6},
+    'Trevor Lawrence': {'Pos': 'QB', 'Team': 'JAX', 'Value': 71.0, 'Proj_PPG': 18.9},
+    'Brock Purdy': {'Pos': 'QB', 'Team': 'SF', 'Value': 70.5, 'Proj_PPG': 18.7},
+    'Justin Herbert': {'Pos': 'QB', 'Team': 'LAC', 'Value': 69.0, 'Proj_PPG': 18.4},
+    'Bo Nix': {'Pos': 'QB', 'Team': 'DEN', 'Value': 67.0, 'Proj_PPG': 17.8},
+    'Baker Mayfield': {'Pos': 'QB', 'Team': 'TB', 'Value': 65.0, 'Proj_PPG': 17.2},
+    'Matthew Stafford': {'Pos': 'QB', 'Team': 'LAR', 'Value': 63.5, 'Proj_PPG': 16.8},
+    
+    # Running Backs
+    'Bijan Robinson': {'Pos': 'RB', 'Team': 'ATL', 'Value': 95.0, 'Proj_PPG': 19.8},
+    'Jahmyr Gibbs': {'Pos': 'RB', 'Team': 'DET', 'Value': 92.0, 'Proj_PPG': 18.9},
+    'Christian McCaffrey': {'Pos': 'RB', 'Team': 'SF', 'Value': 91.0, 'Proj_PPG': 19.2},
+    'Breece Hall': {'Pos': 'RB', 'Team': 'NYJ', 'Value': 89.0, 'Proj_PPG': 18.2},
+    'Jonathan Taylor': {'Pos': 'RB', 'Team': 'IND', 'Value': 86.0, 'Proj_PPG': 17.4},
+    'Chase Brown': {'Pos': 'RB', 'Team': 'CIN', 'Value': 82.5, 'Proj_PPG': 16.6},
+    'Saquon Barkley': {'Pos': 'RB', 'Team': 'PHI', 'Value': 81.0, 'Proj_PPG': 16.2},
+    'De\'Von Achane': {'Pos': 'RB', 'Team': 'MIA', 'Value': 79.5, 'Proj_PPG': 15.9},
+    'Omarion Hampton': {'Pos': 'RB', 'Team': 'LAC', 'Value': 74.0, 'Proj_PPG': 14.8},
+    'Bucky Irving': {'Pos': 'RB', 'Team': 'TB', 'Value': 72.5, 'Proj_PPG': 14.4},
+    'Kenneth Walker III': {'Pos': 'RB', 'Team': 'KC', 'Value': 71.0, 'Proj_PPG': 14.1},
+    'Josh Jacobs': {'Pos': 'RB', 'Team': 'GB', 'Value': 70.0, 'Proj_PPG': 13.9},
+    'Derrick Henry': {'Pos': 'RB', 'Team': 'BAL', 'Value': 68.5, 'Proj_PPG': 13.5},
+    'James Cook III': {'Pos': 'RB', 'Team': 'BUF', 'Value': 67.0, 'Proj_PPG': 13.2},
+    'Tony Pollard': {'Pos': 'RB', 'Team': 'TEN', 'Value': 58.0, 'Proj_PPG': 11.6},
+    'RJ Harvey': {'Pos': 'RB', 'Team': 'DEN', 'Value': 54.0, 'Proj_PPG': 10.8},
+    'Jonah Coleman': {'Pos': 'RB', 'Team': 'DEN', 'Value': 48.0, 'Proj_PPG': 9.8},
+    'D\'Andre Swift': {'Pos': 'RB', 'Team': 'CHI', 'Value': 55.0, 'Proj_PPG': 11.0},
+    'Rhamondre Stevenson': {'Pos': 'RB', 'Team': 'NE', 'Value': 52.0, 'Proj_PPG': 10.4},
+    'Jaylen Warren': {'Pos': 'RB', 'Team': 'PIT', 'Value': 49.0, 'Proj_PPG': 9.9},
+    
+    # Wide Receivers
+    'CeeDee Lamb': {'Pos': 'WR', 'Team': 'DAL', 'Value': 96.0, 'Proj_PPG': 19.5},
+    'Ja\'Marr Chase': {'Pos': 'WR', 'Team': 'CIN', 'Value': 95.5, 'Proj_PPG': 19.2},
+    'Justin Jefferson': {'Pos': 'WR', 'Team': 'MIN', 'Value': 94.0, 'Proj_PPG': 18.8},
+    'Amon-Ra St. Brown': {'Pos': 'WR', 'Team': 'DET', 'Value': 92.5, 'Proj_PPG': 18.4},
+    'A.J. Brown': {'Pos': 'WR', 'Team': 'NE', 'Value': 89.0, 'Proj_PPG': 17.5},
+    'Puka Nacua': {'Pos': 'WR', 'Team': 'LAR', 'Value': 88.0, 'Proj_PPG': 17.2},
+    'Garrett Wilson': {'Pos': 'WR', 'Team': 'NYJ', 'Value': 85.0, 'Proj_PPG': 16.5},
+    'Drake London': {'Pos': 'WR', 'Team': 'ATL', 'Value': 83.5, 'Proj_PPG': 16.1},
+    'Marvin Harrison Jr.': {'Pos': 'WR', 'Team': 'ARI', 'Value': 82.0, 'Proj_PPG': 15.8},
+    'Nico Collins': {'Pos': 'WR', 'Team': 'HOU', 'Value': 80.5, 'Proj_PPG': 15.4},
+    'Malik Nabers': {'Pos': 'WR', 'Team': 'NYG', 'Value': 79.0, 'Proj_PPG': 15.1},
+    'Rashee Rice': {'Pos': 'WR', 'Team': 'KC', 'Value': 78.0, 'Proj_PPG': 14.9},
+    'DeVonta Smith': {'Pos': 'WR', 'Team': 'PHI', 'Value': 75.0, 'Proj_PPG': 14.3},
+    'DJ Moore': {'Pos': 'WR', 'Team': 'BUF', 'Value': 73.5, 'Proj_PPG': 14.0},
+    'Tee Higgins': {'Pos': 'WR', 'Team': 'CIN', 'Value': 72.0, 'Proj_PPG': 13.7},
+    'Jaylen Waddle': {'Pos': 'WR', 'Team': 'DEN', 'Value': 70.0, 'Proj_PPG': 13.4},
+    'Chris Olave': {'Pos': 'WR', 'Team': 'NO', 'Value': 69.5, 'Proj_PPG': 13.2},
+    'DK Metcalf': {'Pos': 'WR', 'Team': 'PIT', 'Value': 68.0, 'Proj_PPG': 12.9},
+    'George Pickens': {'Pos': 'WR', 'Team': 'DAL', 'Value': 66.5, 'Proj_PPG': 12.6},
+    'Rome Odunze': {'Pos': 'WR', 'Team': 'CHI', 'Value': 64.0, 'Proj_PPG': 12.2},
+    'Ladd McConkey': {'Pos': 'WR', 'Team': 'LAC', 'Value': 63.0, 'Proj_PPG': 12.0},
+    'Wan\'Dale Robinson': {'Pos': 'WR', 'Team': 'TEN', 'Value': 54.0, 'Proj_PPG': 10.5},
+    'Josh Downs': {'Pos': 'WR', 'Team': 'IND', 'Value': 51.0, 'Proj_PPG': 10.0},
+    'Jayden Higgins': {'Pos': 'WR', 'Team': 'HOU', 'Value': 47.0, 'Proj_PPG': 9.2},
+    'Jalen McMillan': {'Pos': 'WR', 'Team': 'TB', 'Value': 45.0, 'Proj_PPG': 8.8},
+    'Chris Bell': {'Pos': 'WR', 'Team': 'MIA', 'Value': 38.0, 'Proj_PPG': 7.5},
+    
+    # Tight Ends
+    'Brock Bowers': {'Pos': 'TE', 'Team': 'LV', 'Value': 78.0, 'Proj_PPG': 13.8},
+    'Trey McBride': {'Pos': 'TE', 'Team': 'ARI', 'Value': 76.0, 'Proj_PPG': 13.4},
+    'Sam LaPorta': {'Pos': 'TE', 'Team': 'DET', 'Value': 73.0, 'Proj_PPG': 12.8},
+    'Travis Kelce': {'Pos': 'TE', 'Team': 'KC', 'Value': 68.0, 'Proj_PPG': 12.0},
+    'Mark Andrews': {'Pos': 'TE', 'Team': 'BAL', 'Value': 65.0, 'Proj_PPG': 11.4},
+    'George Kittle': {'Pos': 'TE', 'Team': 'SF', 'Value': 63.0, 'Proj_PPG': 11.0},
+    'Jake Ferguson': {'Pos': 'TE', 'Team': 'DAL', 'Value': 48.0, 'Proj_PPG': 8.5}
+}
+
+# BASELINE DEFENSE METRICS
 DEFAULT_DST_METRICS = {
     'CLE': {'Pressure_Rate': 28.5, 'Sack_Rate': 8.9, 'Blitz_Rate': 31.0},
     'PIT': {'Pressure_Rate': 27.1, 'Sack_Rate': 8.4, 'Blitz_Rate': 33.0},
@@ -109,7 +191,7 @@ FULL_NFL_SCHEDULE = {
     'IND': [('BAL', +3.5, 48.5, 'Home'), ('KC', +5.5, 49.5, 'Away'),   ('HOU', +1.5, 46.0, 'Home')],
     'BAL': [('IND', -3.5, 48.5, 'Away'), ('NO', -7.5, 45.0, 'Home'),   ('DAL', -2.5, 49.0, 'Neutral')],
     'HOU': [('BUF', +1.5, 44.5, 'Home'), ('CIN', -1.5, 48.0, 'Home'),  ('IND', -1.5, 46.0, 'Away')],
-    'LAC': [('ARI', -10.5, 46.5, 'Home'), ('LV', -4.5, 43.0, 'Home'),  ('BUF', +3.5, 48.5, 'Away')],
+    'LAC': [('ARI', -10.5, 46.5, 'Home'), ('LV', -4.5, 43.0, 'Home'),   ('BUF', +3.5, 48.5, 'Away')],
     'LV':  [('MIA', -3.5, 40.5, 'Home'), ('LAC', +4.5, 43.0, 'Away'),  ('NO', +1.5, 43.0, 'Away')],
     'MIA': [('LV', +3.5, 40.5, 'Away'),  ('NE', -3.5, 45.0, 'Away'),   ('KC', +3.5, 49.0, 'Home')],
     'GB':  [('MIN', -1.5, 44.5, 'Away'), ('NYJ', -3.5, 43.0, 'Away'),  ('ATL', -4.5, 46.0, 'Home')],
@@ -234,16 +316,16 @@ with st.sidebar:
     st.caption("Active Roster: Dak, Goff, Chase Brown, Hampton, Bucky, London, DJ Moore, JAX D/ST")
 
 st.title("🏈 2026 In-Season Strategic Control Tower")
-st.caption("D/ST Streaming Engine, Live Vegas Line Arbitrage & Dynamic Spreadsheet Ingestion")
+st.caption("D/ST Streaming Engine, Live Vegas Arbitrage, Lineup Solver & Trade Terminal")
 
 tabs = st.tabs([
     "🛡️ D/ST Asymmetric Streaming Terminal",
     "📊 Weekly Projections & Lineup Solver",
     "⚖️ Live Vegas Spreads & Implied Totals",
-    "🤝 Roster Distress & Trade Radar"
+    "🤝 Trade Analyzer & Valuation Terminal"
 ])
 
-# --- TAB 1: D/ST TERMINAL (ALL 32 TEAMS INCLUDED) ---
+# --- TAB 1: D/ST TERMINAL ---
 with tabs[0]:
     st.header("🛡️ D/ST Asymmetric Streaming Terminal (All 32 NFL Defenses)")
     st.caption("Pass-Rush vs. OL Deficit Index, Scheme Tuning & Verified 2026 Schedule")
@@ -271,9 +353,7 @@ with tabs[0]:
             st.success(f"Saved {tune_team} updates!")
             st.rerun()
 
-    # Search filter bar
     search_q = st.text_input("🔍 Quick Filter Team (e.g. JAX, SEA, DEN, Dallas):", value="").strip().upper()
-    
     if search_q:
         filtered_teams = [t for t in all_teams_list if search_q in t or search_q in NFL_TEAMS.get(t, '').upper()]
     else:
@@ -354,7 +434,75 @@ with tabs[2]:
     else:
         st.warning("⚠️ **No API Key Found.** Enter your free API key in the sidebar to unlock live odds.")
 
-# --- TAB 4: TRADE RADAR ---
+# --- TAB 4: TRADE ANALYZER & VALUATION TERMINAL ---
 with tabs[3]:
-    st.header("🤝 Trade Distress & Leverage Radar")
-    st.info("Rival roster distress indicators and buy-low targets will activate after Week 1.")
+    st.header("🤝 Trade Analyzer & True Valuation Terminal")
+    st.caption("Superflex True VORP Index & Multi-Player Package Calculator")
+    
+    player_pool = sorted(list(TRADE_DATABASE.keys()))
+    
+    col_t1, col_t2 = st.columns(2)
+    
+    with col_t1:
+        st.subheader("📤 You Send (Giving Away)")
+        giving_players = st.multiselect("Select Player(s) to Trade Away:", player_pool, default=['Tony Pollard'])
+        
+    with col_t2:
+        st.subheader("📥 You Receive (Getting Back)")
+        receiving_players = st.multiselect("Select Player(s) to Receive:", player_pool, default=['Malik Nabers'])
+        
+    if giving_players or receiving_players:
+        giving_val = sum([TRADE_DATABASE[p]['Value'] for p in giving_players])
+        receiving_val = sum([TRADE_DATABASE[p]['Value'] for p in receiving_players])
+        
+        giving_ppg = sum([TRADE_DATABASE[p]['Proj_PPG'] for p in giving_players])
+        receiving_ppg = sum([TRADE_DATABASE[p]['Proj_PPG'] for p in receiving_players])
+        
+        # Package Roster Spot Adjustment (Penalty for receiving fewer concentrated assets)
+        # e.g., 2 players for 1 elite player has an inherent roster consolidation premium
+        if len(giving_players) > len(receiving_players):
+            consolidation_bonus = (len(giving_players) - len(receiving_players)) * 5.0
+            receiving_val_adj = receiving_val + consolidation_bonus
+        elif len(receiving_players) > len(giving_players):
+            consolidation_penalty = (len(receiving_players) - len(giving_players)) * 5.0
+            receiving_val_adj = receiving_val - consolidation_penalty
+        else:
+            receiving_val_adj = receiving_val
+            
+        net_value_diff = round(receiving_val_adj - giving_val, 1)
+        net_ppg_diff = round(receiving_ppg - giving_ppg, 1)
+        
+        st.markdown("---")
+        st.subheader("📊 Trade Valuation Breakdown")
+        
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Giving Value", f"{round(giving_val, 1)} pts")
+        m2.metric("Receiving Value", f"{round(receiving_val, 1)} pts")
+        m3.metric("Net Trade Index", f"{net_value_diff:+} pts", delta=f"{net_value_diff:+} Surplus")
+        m4.metric("Net Weekly PPG Impact", f"{net_ppg_diff:+} PPG")
+        
+        if net_value_diff >= 12.0:
+            st.success("🟢 **TRADE VERDICT: SMASH ACCEPT.** You are capturing massive True VORP surplus. Highly advantageous trade.")
+        elif net_value_diff >= 3.0:
+            st.success("🟢 **TRADE VERDICT: WIN (FAVORABLE).** Strong trade that improves your starting lineup efficiency.")
+        elif net_value_diff >= -4.0:
+            st.info("🔵 **TRADE VERDICT: FAIR (WIN-WIN).** Even trade on paper. Make the deal if it addresses specific roster bye-week/depth needs.")
+        elif net_value_diff >= -12.0:
+            st.warning("🟡 **TRADE VERDICT: LEAN REJECT (ASK FOR SWEETENER).** You are giving up slightly more value than you receive.")
+        else:
+            st.error("🔴 **TRADE VERDICT: LOPSIDED REJECT.** You are giving away significant asset value without adequate return.")
+            
+        st.markdown("---")
+        st.subheader("📋 Asset Details Involved")
+        
+        col_g, col_r = st.columns(2)
+        with col_g:
+            st.write("**You Give:**")
+            if giving_players:
+                st.dataframe(pd.DataFrame([{'Player': p, 'Pos': TRADE_DATABASE[p]['Pos'], 'Team': TRADE_DATABASE[p]['Team'], 'Trade Value': TRADE_DATABASE[p]['Value'], 'Proj PPG': TRADE_DATABASE[p]['Proj_PPG']} for p in giving_players]), use_container_width=True)
+        with col_r:
+            st.write("**You Get:**")
+            if receiving_players:
+                st.dataframe(pd.DataFrame([{'Player': p, 'Pos': TRADE_DATABASE[p]['Pos'], 'Team': TRADE_DATABASE[p]['Team'], 'Trade Value': TRADE_DATABASE[p]['Value'], 'Proj PPG': TRADE_DATABASE[p]['Proj_PPG']} for p in receiving_players]), use_container_width=True)
+    else:
+        st.info("Select players on both sides above to calculate trade equity.")
