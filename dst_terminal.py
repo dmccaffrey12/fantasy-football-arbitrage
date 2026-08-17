@@ -13,46 +13,47 @@ NFL_TEAMS = {
     'SF': 'San Francisco 49ers', 'TB': 'Tampa Bay Buccaneers', 'TEN': 'Tennessee Titans', 'WSH': 'Washington Commanders'
 }
 
+# SEED BASELINE METRICS
 DEFAULT_DST_METRICS = {
-    'CLE': {'Pressure_Rate': 28.5, 'Sack_Rate': 8.9, 'Blitz_Rate': 31.0, 'Base_Tier': 'Elite'},
-    'PIT': {'Pressure_Rate': 27.1, 'Sack_Rate': 8.4, 'Blitz_Rate': 33.0, 'Base_Tier': 'Elite'},
-    'NYJ': {'Pressure_Rate': 26.8, 'Sack_Rate': 8.1, 'Blitz_Rate': 21.5, 'Base_Tier': 'Elite'},
-    'SF':  {'Pressure_Rate': 26.2, 'Sack_Rate': 7.9, 'Blitz_Rate': 22.0, 'Base_Tier': 'Elite'},
-    'DAL': {'Pressure_Rate': 26.0, 'Sack_Rate': 7.8, 'Blitz_Rate': 30.0, 'Base_Tier': 'Elite'},
-    'HOU': {'Pressure_Rate': 25.4, 'Sack_Rate': 7.7, 'Blitz_Rate': 25.0, 'Base_Tier': 'Rostered'},
-    'BAL': {'Pressure_Rate': 25.0, 'Sack_Rate': 7.6, 'Blitz_Rate': 29.5, 'Base_Tier': 'Elite'},
-    'JAX': {'Pressure_Rate': 24.8, 'Sack_Rate': 7.4, 'Blitz_Rate': 28.0, 'Base_Tier': 'Streamer'},
-    'DEN': {'Pressure_Rate': 24.0, 'Sack_Rate': 7.2, 'Blitz_Rate': 27.0, 'Base_Tier': 'Streamer'},
-    'SEA': {'Pressure_Rate': 23.5, 'Sack_Rate': 6.9, 'Blitz_Rate': 26.0, 'Base_Tier': 'Streamer'},
-    'TB':  {'Pressure_Rate': 23.0, 'Sack_Rate': 6.7, 'Blitz_Rate': 34.0, 'Base_Tier': 'Streamer'},
-    'LV':  {'Pressure_Rate': 22.8, 'Sack_Rate': 6.9, 'Blitz_Rate': 24.0, 'Base_Tier': 'Streamer'},
-    'CIN': {'Pressure_Rate': 22.1, 'Sack_Rate': 6.8, 'Blitz_Rate': 24.5, 'Base_Tier': 'Rostered'},
-    'KC':  {'Pressure_Rate': 22.5, 'Sack_Rate': 6.6, 'Blitz_Rate': 27.0, 'Base_Tier': 'Rostered'},
-    'GB':  {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 26.0, 'Base_Tier': 'Streamer'},
-    'IND': {'Pressure_Rate': 21.8, 'Sack_Rate': 6.4, 'Blitz_Rate': 21.0, 'Base_Tier': 'Streamer'},
-    'BUF': {'Pressure_Rate': 22.4, 'Sack_Rate': 6.6, 'Blitz_Rate': 23.0, 'Base_Tier': 'Rostered'},
-    'PHI': {'Pressure_Rate': 22.0, 'Sack_Rate': 6.4, 'Blitz_Rate': 22.5, 'Base_Tier': 'Rostered'},
-    'MIN': {'Pressure_Rate': 23.2, 'Sack_Rate': 6.8, 'Blitz_Rate': 38.0, 'Base_Tier': 'Streamer'},
-    'DET': {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0, 'Base_Tier': 'Rostered'},
-    'LAR': {'Pressure_Rate': 21.5, 'Sack_Rate': 6.3, 'Blitz_Rate': 24.0, 'Base_Tier': 'Streamer'},
-    'MIA': {'Pressure_Rate': 21.4, 'Sack_Rate': 6.2, 'Blitz_Rate': 27.0, 'Base_Tier': 'Streamer'},
-    'LAC': {'Pressure_Rate': 21.2, 'Sack_Rate': 6.1, 'Blitz_Rate': 23.0, 'Base_Tier': 'Streamer'},
-    'NO':  {'Pressure_Rate': 21.0, 'Sack_Rate': 6.0, 'Blitz_Rate': 24.0, 'Base_Tier': 'Streamer'},
-    'NE':  {'Pressure_Rate': 21.0, 'Sack_Rate': 5.9, 'Blitz_Rate': 23.0, 'Base_Tier': 'Low-Tier'},
-    'CHI': {'Pressure_Rate': 20.8, 'Sack_Rate': 5.8, 'Blitz_Rate': 22.0, 'Base_Tier': 'Streamer'},
-    'TEN': {'Pressure_Rate': 20.5, 'Sack_Rate': 5.8, 'Blitz_Rate': 25.0, 'Base_Tier': 'Low-Tier'},
-    'ATL': {'Pressure_Rate': 20.0, 'Sack_Rate': 5.5, 'Blitz_Rate': 22.0, 'Base_Tier': 'Low-Tier'},
-    'WSH': {'Pressure_Rate': 19.5, 'Sack_Rate': 5.4, 'Blitz_Rate': 24.0, 'Base_Tier': 'Low-Tier'},
-    'ARI': {'Pressure_Rate': 19.0, 'Sack_Rate': 5.3, 'Blitz_Rate': 21.0, 'Base_Tier': 'Low-Tier'},
-    'CAR': {'Pressure_Rate': 18.5, 'Sack_Rate': 5.2, 'Blitz_Rate': 22.0, 'Base_Tier': 'Low-Tier'},
-    'NYG': {'Pressure_Rate': 20.5, 'Sack_Rate': 5.7, 'Blitz_Rate': 28.0, 'Base_Tier': 'Low-Tier'}
+    'CLE': {'Pressure_Rate': 28.5, 'Sack_Rate': 8.9, 'Blitz_Rate': 31.0},
+    'PIT': {'Pressure_Rate': 27.1, 'Sack_Rate': 8.4, 'Blitz_Rate': 33.0},
+    'NYJ': {'Pressure_Rate': 26.8, 'Sack_Rate': 8.1, 'Blitz_Rate': 21.5},
+    'SF':  {'Pressure_Rate': 26.2, 'Sack_Rate': 7.9, 'Blitz_Rate': 22.0},
+    'DAL': {'Pressure_Rate': 26.0, 'Sack_Rate': 7.8, 'Blitz_Rate': 30.0},
+    'HOU': {'Pressure_Rate': 25.4, 'Sack_Rate': 7.7, 'Blitz_Rate': 25.0},
+    'BAL': {'Pressure_Rate': 25.0, 'Sack_Rate': 7.6, 'Blitz_Rate': 29.5},
+    'JAX': {'Pressure_Rate': 24.8, 'Sack_Rate': 7.4, 'Blitz_Rate': 28.0},
+    'NYG': {'Pressure_Rate': 25.5, 'Sack_Rate': 7.5, 'Blitz_Rate': 32.0}, # Updated: Harbaugh / Dennard Wilson Scheme
+    'DEN': {'Pressure_Rate': 24.0, 'Sack_Rate': 7.2, 'Blitz_Rate': 27.0},
+    'SEA': {'Pressure_Rate': 23.5, 'Sack_Rate': 6.9, 'Blitz_Rate': 26.0},
+    'TB':  {'Pressure_Rate': 23.0, 'Sack_Rate': 6.7, 'Blitz_Rate': 34.0},
+    'LV':  {'Pressure_Rate': 22.8, 'Sack_Rate': 6.9, 'Blitz_Rate': 24.0},
+    'CIN': {'Pressure_Rate': 22.1, 'Sack_Rate': 6.8, 'Blitz_Rate': 24.5},
+    'KC':  {'Pressure_Rate': 22.5, 'Sack_Rate': 6.6, 'Blitz_Rate': 27.0},
+    'GB':  {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 26.0},
+    'IND': {'Pressure_Rate': 21.8, 'Sack_Rate': 6.4, 'Blitz_Rate': 21.0},
+    'BUF': {'Pressure_Rate': 22.4, 'Sack_Rate': 6.6, 'Blitz_Rate': 23.0},
+    'PHI': {'Pressure_Rate': 22.0, 'Sack_Rate': 6.4, 'Blitz_Rate': 22.5},
+    'MIN': {'Pressure_Rate': 23.2, 'Sack_Rate': 6.8, 'Blitz_Rate': 38.0},
+    'DET': {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0},
+    'LAR': {'Pressure_Rate': 21.5, 'Sack_Rate': 6.3, 'Blitz_Rate': 24.0},
+    'MIA': {'Pressure_Rate': 21.4, 'Sack_Rate': 6.2, 'Blitz_Rate': 27.0},
+    'LAC': {'Pressure_Rate': 21.2, 'Sack_Rate': 6.1, 'Blitz_Rate': 23.0},
+    'NO':  {'Pressure_Rate': 21.0, 'Sack_Rate': 6.0, 'Blitz_Rate': 24.0},
+    'NE':  {'Pressure_Rate': 21.0, 'Sack_Rate': 5.9, 'Blitz_Rate': 23.0},
+    'CHI': {'Pressure_Rate': 20.8, 'Sack_Rate': 5.8, 'Blitz_Rate': 22.0},
+    'TEN': {'Pressure_Rate': 20.5, 'Sack_Rate': 5.8, 'Blitz_Rate': 25.0},
+    'ATL': {'Pressure_Rate': 20.0, 'Sack_Rate': 5.5, 'Blitz_Rate': 22.0},
+    'WSH': {'Pressure_Rate': 19.5, 'Sack_Rate': 5.4, 'Blitz_Rate': 24.0},
+    'ARI': {'Pressure_Rate': 19.0, 'Sack_Rate': 5.3, 'Blitz_Rate': 21.0},
+    'CAR': {'Pressure_Rate': 18.5, 'Sack_Rate': 5.2, 'Blitz_Rate': 22.0}
 }
 
 DEFAULT_OPPONENT_METRICS = {
-    'NYG': {'OL_Pressure_Allowed': 30.2, 'QB_Sack_Penalty': 1.30, 'Turnover_Rate': 2.2},
     'NE':  {'OL_Pressure_Allowed': 29.0, 'QB_Sack_Penalty': 1.25, 'Turnover_Rate': 2.0},
     'CAR': {'OL_Pressure_Allowed': 28.0, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.1},
     'CLE': {'OL_Pressure_Allowed': 27.5, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.0},
+    'NYG': {'OL_Pressure_Allowed': 27.0, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.0},
     'TEN': {'OL_Pressure_Allowed': 26.5, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 1.9},
     'WSH': {'OL_Pressure_Allowed': 25.8, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 1.9},
     'LV':  {'OL_Pressure_Allowed': 25.0, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.8},
@@ -118,25 +119,24 @@ FULL_NFL_SCHEDULE = {
     'KC':  [('DEN', -5.5, 46.0, 'Home'), ('IND', -5.5, 49.5, 'Home'),  ('MIA', -3.5, 49.0, 'Away')]
 }
 
-def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home):
-    dst_data = DEFAULT_DST_METRICS.get(dst_code, {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0})
-    opp_data = DEFAULT_OPPONENT_METRICS.get(opp_code, {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.0, 'Turnover_Rate': 1.6})
+def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home, dst_metrics_dict=None, opp_metrics_dict=None):
+    dst_dict = dst_metrics_dict if dst_metrics_dict else DEFAULT_DST_METRICS
+    opp_dict = opp_metrics_dict if opp_metrics_dict else DEFAULT_OPPONENT_METRICS
     
-    # 1. Implied Vegas Totals
+    dst_data = dst_dict.get(dst_code, {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0})
+    opp_data = opp_dict.get(opp_code, {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.0, 'Turnover_Rate': 1.6})
+    
     implied_opp_total = (ou_total / 2.0) - (spread / 2.0)
     
-    # 2. Corrected Sack Model (Scaled to ~35 passing dropbacks per game)
     combined_pressure_idx = (dst_data['Pressure_Rate'] * 0.45) + (opp_data['OL_Pressure_Allowed'] * 0.55)
-    base_sacks = (dst_data['Sack_Rate'] / 100.0) * 35.0  # e.g., 8.1% * 35 = ~2.8 sacks
+    base_sacks = (dst_data['Sack_Rate'] / 100.0) * 35.0
     expected_sacks = base_sacks * opp_data['QB_Sack_Penalty'] * (combined_pressure_idx / 23.0)
     expected_sack_pts = expected_sacks * 1.0
     
-    # 3. Game Script & Turnover Equity
     trailing_mult = 1.20 if spread <= -4.0 else (1.10 if spread < 0 else 0.90)
     expected_turnovers = ((opp_data['Turnover_Rate'] * 0.65) + (0.3 if is_home else 0.0)) * trailing_mult
     expected_to_pts = expected_turnovers * 2.0
     
-    # 4. Points Allowed Equity
     if implied_opp_total < 14.0:
         pts_allowed_equity = 7.0
     elif implied_opp_total < 18.0:
@@ -161,11 +161,39 @@ def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home)
 
 def render_dst_streaming_terminal():
     st.header("🛡️ D/ST Asymmetric Streaming Terminal")
-    st.caption("Pass-Rush vs. OL Deficit Index, Vegas Implied Script & Verified 2026 NFL Schedule")
+    st.caption("Pass-Rush vs. OL Deficit Index, Scheme Tuning & Verified 2026 Schedule")
     
+    # Initialize state for custom metrics
+    if 'custom_dst_metrics' not in st.session_state:
+        st.session_state.custom_dst_metrics = DEFAULT_DST_METRICS.copy()
+    if 'custom_opp_metrics' not in st.session_state:
+        st.session_state.custom_opp_metrics = DEFAULT_OPPONENT_METRICS.copy()
+        
     all_teams_list = sorted(list(FULL_NFL_SCHEDULE.keys()))
     rostered_defaults = ['CIN', 'BAL', 'SF', 'CLE', 'PIT', 'DAL', 'NYJ', 'HOU', 'BUF', 'KC', 'DET', 'PHI']
     
+    # 1. EXPANDER: SCHEME & COACHING TUNING
+    with st.expander("🛠️ Dynamic Scheme Tuning & Coaching Overrides (e.g. John Harbaugh / NYG)", expanded=False):
+        st.caption("Adjust baseline metrics to reflect new coaching schemes, free-agent upgrades, or preseason shifts:")
+        col_m1, col_m2 = st.columns(2)
+        tune_team = col_m1.selectbox("Select Team to Tune", all_teams_list, index=all_teams_list.index('NYG'))
+        
+        curr_d = st.session_state.custom_dst_metrics.get(tune_team, {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0})
+        curr_o = st.session_state.custom_opp_metrics.get(tune_team, {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.0, 'Turnover_Rate': 1.6})
+        
+        c_t1, c_t2, c_t3 = st.columns(3)
+        new_pr = c_t1.slider(f"{tune_team} Defensive Pressure %", 15.0, 35.0, float(curr_d['Pressure_Rate']), 0.5)
+        new_sr = c_t2.slider(f"{tune_team} Sack Rate %", 4.0, 12.0, float(curr_d['Sack_Rate']), 0.1)
+        new_ol = c_t3.slider(f"{tune_team} OL Pressure Allowed %", 14.0, 35.0, float(curr_o['OL_Pressure_Allowed']), 0.5)
+        
+        if st.button(f"💾 Save {tune_team} Metric Updates"):
+            st.session_state.custom_dst_metrics[tune_team]['Pressure_Rate'] = new_pr
+            st.session_state.custom_dst_metrics[tune_team]['Sack_Rate'] = new_sr
+            st.session_state.custom_opp_metrics[tune_team]['OL_Pressure_Allowed'] = new_ol
+            st.success(f"Updated {tune_team} baseline metrics!")
+            st.rerun()
+
+    # 2. WAIVER CONTROLS
     with st.expander("⚙️ Manage League Waiver Defenses", expanded=False):
         col_w1, col_w2 = st.columns([2, 1])
         active_waiver_pool = col_w1.multiselect(
@@ -177,13 +205,18 @@ def render_dst_streaming_terminal():
         
     active_eval_teams = active_waiver_pool if show_waivers_only else all_teams_list
     
+    # 3. LEAGUE-WIDE RANKINGS TABLE
     st.subheader(f"🔥 Week 1 Streaming Rankings ({'Waiver Options' if show_waivers_only else 'All 32 Teams'})")
     
     rankings_data = []
     for t_code in active_eval_teams:
         matchup = FULL_NFL_SCHEDULE[t_code][0]
         opp, spread, ou, loc = matchup[0], matchup[1], matchup[2], matchup[3]
-        res = calculate_dst_composite_score(t_code, opp, spread, ou, loc == 'Home')
+        res = calculate_dst_composite_score(
+            t_code, opp, spread, ou, loc == 'Home', 
+            st.session_state.custom_dst_metrics, 
+            st.session_state.custom_opp_metrics
+        )
         
         rankings_data.append({
             'Rank': 0,
@@ -203,6 +236,7 @@ def render_dst_streaming_terminal():
     
     st.markdown("---")
     
+    # 4. SINGLE D/ST SIMULATOR
     st.subheader("🔍 Single D/ST Deep Dive & Custom Vegas Simulator")
     col_s1, col_s2 = st.columns(2)
     selected_eval = col_s1.selectbox("Select Team to Inspect", all_teams_list, index=all_teams_list.index('JAX'))
@@ -217,7 +251,11 @@ def render_dst_streaming_terminal():
     custom_ou = c_v2.number_input("Game Over/Under (O/U)", 30.0, 60.0, float(sim_matchup[2]), 0.5)
     custom_loc = c_v3.radio("Game Location", ["Home", "Away"], index=0 if sim_matchup[3]=='Home' else 1, horizontal=True)
     
-    single_res = calculate_dst_composite_score(selected_eval, opp_team_sel, custom_spread, custom_ou, custom_loc == "Home")
+    single_res = calculate_dst_composite_score(
+        selected_eval, opp_team_sel, custom_spread, custom_ou, custom_loc == "Home",
+        st.session_state.custom_dst_metrics,
+        st.session_state.custom_opp_metrics
+    )
     
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Composite D/ST Projection", f"{single_res['Composite_Score']} PTS")
@@ -227,6 +265,7 @@ def render_dst_streaming_terminal():
     
     st.markdown("---")
     
+    # 5. MULTI-WEEK TRAJECTORY MATRIX (WEEKS 1 - 3)
     st.subheader("📅 3-Week Stash & Stream Multi-Week Matrix")
     st.caption("Identify multi-week pairs before waiver prices spike next Tuesday:")
     
@@ -234,9 +273,9 @@ def render_dst_streaming_terminal():
     for d_code in active_eval_teams:
         weeks = FULL_NFL_SCHEDULE[d_code]
         w1, w2, w3 = weeks[0], weeks[1], weeks[2]
-        r1 = calculate_dst_composite_score(d_code, w1[0], w1[1], w1[2], w1[3]=='Home')['Composite_Score']
-        r2 = calculate_dst_composite_score(d_code, w2[0], w2[1], w2[2], w2[3]=='Home')['Composite_Score']
-        r3 = calculate_dst_composite_score(d_code, w3[0], w3[1], w3[2], w3[3]=='Home')['Composite_Score']
+        r1 = calculate_dst_composite_score(d_code, w1[0], w1[1], w1[2], w1[3]=='Home', st.session_state.custom_dst_metrics, st.session_state.custom_opp_metrics)['Composite_Score']
+        r2 = calculate_dst_composite_score(d_code, w2[0], w2[1], w2[2], w2[3]=='Home', st.session_state.custom_dst_metrics, st.session_state.custom_opp_metrics)['Composite_Score']
+        r3 = calculate_dst_composite_score(d_code, w3[0], w3[1], w3[2], w3[3]=='Home', st.session_state.custom_dst_metrics, st.session_state.custom_opp_metrics)['Composite_Score']
         avg_3w = round((r1 + r2 + r3) / 3.0, 2)
         
         multi_data.append({
