@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os
-import json
 
 from dst_terminal import render_dst_streaming_terminal
-from trade_analyzer import render_trade_analyzer
+from lineup_optimizer import render_lineup_optimizer
+from market_api import fetch_live_nfl_odds
 
 st.set_page_config(
     page_title="2026 In-Season Strategic Control Tower", 
@@ -13,14 +12,32 @@ st.set_page_config(
     layout="wide"
 )
 
-# Active In-Season Modules
+# --- SIDEBAR: LIVE API SETTINGS ---
+with st.sidebar:
+    st.header("🔑 Live Market API Settings")
+    
+    api_key_input = st.text_input(
+        "The-Odds-API Key", 
+        value=st.session_state.get('the_odds_api_key', ''),
+        type="password",
+        placeholder="Paste your free API key here...",
+        help="Get your free key with 500 requests/month at the-odds-api.com"
+    )
+    
+    if api_key_input:
+        st.session_state.the_odds_api_key = api_key_input
+        st.success("✅ API Key Loaded!")
+        
+    st.markdown("---")
+    st.caption("Live Roster Status: Dak, Goff, Chase Brown, Hampton, Bucky, London, DJ Moore, JAX D/ST")
+
 st.title("🏈 2026 In-Season Fantasy Strategic Terminal")
-st.caption("D/ST Asymmetric Streaming Engine, Vegas Line Arbitrage & Dynamic Spreadsheet Ingestion")
+st.caption("D/ST Asymmetric Streaming Engine, Live Vegas Line Arbitrage & Dynamic Spreadsheet Ingestion")
 
 tabs = st.tabs([
     "🛡️ D/ST Asymmetric Streaming Terminal",
-    "📊 Weekly Projections Ingestion & Lineup Optimizer",
-    "⚖️ Vegas Implied Lines & Prediction Markets",
+    "📊 Weekly Projections & Lineup Solver",
+    "⚖️ Live Vegas Spreads & Implied Totals",
     "🤝 Roster Distress & Trade Radar"
 ])
 
@@ -28,31 +45,40 @@ tabs = st.tabs([
 with tabs[0]:
     render_dst_streaming_terminal()
 
-# --- TAB 2: PROJECTIONS INGESTION ---
+# --- TAB 2: PROJECTIONS & LINEUP SOLVER ---
 with tabs[1]:
-    st.header("📊 Weekly Spreadsheet Ingestion & Lineup Solver")
-    st.caption("Upload your weekly projections spreadsheet directly to run lineup optimization:")
-    
-    uploaded_file = st.file_uploader("Upload Weekly Projections (.xlsx or .csv)", type=['xlsx', 'csv'])
-    if uploaded_file is not None:
-        try:
-            if uploaded_file.name.endswith('.csv'):
-                df_proj = pd.read_csv(uploaded_file)
-            else:
-                df_proj = pd.read_excel(uploaded_file)
-            st.success(f"✅ Successfully ingested {len(df_proj)} player projections!")
-            st.dataframe(df_proj.head(20), use_container_width=True)
-        except Exception as e:
-            st.error(f"Error parsing file: {e}")
-    else:
-        st.info("💡 Drag and drop your weekly projections file above to unlock custom floor/ceiling lineup solving.")
+    render_lineup_optimizer()
 
-# --- TAB 3: VEGAS MARKETS ---
+# --- TAB 3: LIVE VEGAS TOTALS & SPREADS ---
 with tabs[2]:
-    st.header("⚖️ Vegas Implied Totals & Prop Line Arbitrage")
-    st.info("Real-time implied team totals, TD equity odds, and player prop lines will populate here.")
+    st.header("⚖️ Live Vegas Spreads & Implied Team Totals")
+    st.caption("Real-time betting market data directly from US Sportsbooks (DraftKings, FanDuel):")
+    
+    active_key = st.session_state.get('the_odds_api_key', '')
+    if active_key:
+        with st.spinner("Fetching live NFL odds..."):
+            df_odds = fetch_live_nfl_odds(active_key)
+            
+        if df_odds is not None and not df_odds.empty:
+            st.dataframe(
+                df_odds[['Away_Team', 'Home_Team', 'Spread', 'Game_Total', 'Away_Implied_Pts', 'Home_Implied_Pts', 'Kickoff']],
+                use_container_width=True
+            )
+            
+            st.markdown("---")
+            st.subheader("🔥 High-Scoring Shootout Watch (Game Totals $\ge$ 47.5)")
+            shootouts = df_odds[df_odds['Game_Total'] >= 47.5]
+            if not shootouts.empty:
+                for idx, row in shootouts.iterrows():
+                    st.info(f"⚡ **{row['Away_Team']} @ {row['Home_Team']}** | Total: **{row['Game_Total']}** | Implied: {row['Away_Code']} ({row['Away_Implied_Pts']}) vs {row['Home_Code']} ({row['Home_Implied_Pts']})")
+            else:
+                st.write("No extreme high-total shootouts currently flagged.")
+        else:
+            st.info("No active NFL game lines returned for this week yet.")
+    else:
+        st.warning("⚠️ **No API Key Found.** Enter your free API key in the sidebar on the left to unlock live odds.")
 
 # --- TAB 4: TRADE RADAR ---
 with tabs[3]:
     st.header("🤝 Trade Distress & Leverage Radar")
-    st.info("League standings, distress index, and predatory trade packages will activate after Week 1.")
+    st.info("Rival roster distress indicators and buy-low targets will activate after Week 1.")
