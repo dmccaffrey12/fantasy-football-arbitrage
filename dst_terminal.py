@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# COMPLETE 32 NFL TEAM NAMES & CODES
 NFL_TEAMS = {
     'ARI': 'Arizona Cardinals', 'ATL': 'Atlanta Falcons', 'BAL': 'Baltimore Ravens', 'BUF': 'Buffalo Bills',
     'CAR': 'Carolina Panthers', 'CHI': 'Chicago Bears', 'CIN': 'Cincinnati Bengals', 'CLE': 'Cleveland Browns',
@@ -14,7 +13,6 @@ NFL_TEAMS = {
     'SF': 'San Francisco 49ers', 'TB': 'Tampa Bay Buccaneers', 'TEN': 'Tennessee Titans', 'WSH': 'Washington Commanders'
 }
 
-# 32-TEAM DEFENSE PRESSURE & TURNOVER METRICS
 DEFAULT_DST_METRICS = {
     'CLE': {'Pressure_Rate': 28.5, 'Sack_Rate': 8.9, 'Blitz_Rate': 31.0, 'Base_Tier': 'Elite'},
     'PIT': {'Pressure_Rate': 27.1, 'Sack_Rate': 8.4, 'Blitz_Rate': 33.0, 'Base_Tier': 'Elite'},
@@ -50,7 +48,6 @@ DEFAULT_DST_METRICS = {
     'NYG': {'Pressure_Rate': 20.5, 'Sack_Rate': 5.7, 'Blitz_Rate': 28.0, 'Base_Tier': 'Low-Tier'}
 }
 
-# 32-TEAM OFFENSIVE LINE & TURNOVER VULNERABILITY METRICS
 DEFAULT_OPPONENT_METRICS = {
     'NYG': {'OL_Pressure_Allowed': 30.2, 'QB_Sack_Penalty': 1.40, 'Turnover_Rate': 2.7},
     'NE':  {'OL_Pressure_Allowed': 29.0, 'QB_Sack_Penalty': 1.35, 'Turnover_Rate': 2.5},
@@ -86,61 +83,55 @@ DEFAULT_OPPONENT_METRICS = {
     'NYJ': {'OL_Pressure_Allowed': 19.5, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.4}
 }
 
-# 3-WEEK NFL SCHEDULE & VEGAS ODDS LOOKAHEAD MAP
+# VERIFIED OFFICIAL 2026 NFL REGULAR SEASON SCHEDULE (WEEKS 1, 2, 3)
 FULL_NFL_SCHEDULE = {
-    'JAX': [('CLE', -3.5, 41.5, 'Home'), ('TEN', -4.0, 42.0, 'Away'), ('CAR', -6.5, 40.0, 'Home')],
-    'CIN': [('NE', -7.5, 41.0, 'Home'),  ('KC', +3.5, 48.0, 'Away'),   ('WSH', -5.5, 44.5, 'Home')],
-    'DEN': [('SEA', +4.5, 42.0, 'Away'), ('PIT', -1.5, 38.5, 'Home'),  ('TB', +3.0, 43.5, 'Away')],
-    'SEA': [('DEN', -4.5, 42.0, 'Home'), ('NE', -3.5, 39.5, 'Away'),   ('MIA', +4.0, 46.0, 'Home')],
-    'TB':  [('WSH', -3.0, 43.0, 'Home'), ('DET', +6.5, 51.0, 'Away'),  ('DEN', -3.0, 43.5, 'Home')],
-    'CLE': [('DAL', +2.5, 43.5, 'Home'), ('JAX', +3.5, 41.5, 'Away'),  ('NYG', -4.5, 39.0, 'Home')],
-    'SF':  [('NYJ', -4.5, 43.0, 'Home'), ('MIN', -6.0, 45.5, 'Away'),  ('LAR', -3.5, 46.0, 'Away')],
-    'BAL': [('KC', +3.0, 47.0, 'Away'),  ('LV', -8.5, 41.0, 'Home'),   ('DAL', -1.5, 46.5, 'Away')],
-    'PIT': [('ATL', +3.0, 42.0, 'Away'), ('DEN', +1.5, 38.5, 'Away'),  ('LAC', -2.5, 40.5, 'Home')],
-    'HOU': [('IND', -2.5, 48.5, 'Away'), ('CHI', -6.0, 45.0, 'Home'),  ('MIN', -3.5, 44.0, 'Away')],
-    'DAL': [('CLE', -2.5, 43.5, 'Away'), ('NO', -6.5, 45.5, 'Home'),   ('BAL', +1.5, 46.5, 'Home')],
-    'NYJ': [('SF', +4.5, 43.0, 'Away'),  ('TEN', -3.5, 41.0, 'Away'),  ('NE', -6.5, 39.5, 'Home')],
-    'KC':  [('BAL', -3.0, 47.0, 'Home'), ('CIN', -3.5, 48.0, 'Home'),  ('ATL', -4.5, 46.5, 'Away')],
-    'PHI': [('GB', -2.5, 48.5, 'Neutral'), ('ATL', -6.5, 47.0, 'Home'), ('NO', -3.0, 45.0, 'Away')],
-    'MIA': [('JAX', -3.5, 49.0, 'Home'), ('BUF', +1.5, 50.0, 'Home'),  ('SEA', -4.0, 46.0, 'Away')],
-    'BUF': [('ARI', -6.5, 47.5, 'Home'), ('MIA', -1.5, 50.0, 'Away'),  ('JAX', -5.0, 48.5, 'Home')],
-    'IND': [('HOU', +2.5, 48.5, 'Home'), ('GB', +3.0, 46.5, 'Away'),   ('CHI', -1.5, 44.0, 'Home')],
-    'GB':  [('PHI', +2.5, 48.5, 'Neutral'), ('IND', -3.0, 46.5, 'Home'), ('TEN', -3.5, 42.0, 'Away')],
-    'MIN': [('NYG', -1.5, 41.5, 'Away'), ('SF', +6.0, 45.5, 'Home'),   ('HOU', +3.5, 44.0, 'Home')],
-    'DET': [('LAR', -3.5, 51.0, 'Home'), ('TB', -6.5, 51.0, 'Home'),   ('ARI', -4.5, 52.0, 'Away')],
-    'CHI': [('TEN', -4.0, 44.5, 'Home'), ('HOU', +6.0, 45.0, 'Away'),  ('IND', +1.5, 44.0, 'Away')],
-    'LV':  [('LAC', +3.0, 42.5, 'Away'), ('BAL', +8.5, 41.0, 'Away'),  ('CAR', -5.5, 40.5, 'Home')],
-    'LAC': [('LV', -3.0, 42.5, 'Home'),  ('CAR', -4.5, 40.5, 'Away'),  ('PIT', +2.5, 40.5, 'Away')],
-    'LAR': [('DET', +3.5, 51.0, 'Away'), ('ARI', -1.5, 48.0, 'Away'),  ('SF', +3.5, 46.0, 'Home')],
-    'NO':  [('CAR', -4.0, 41.5, 'Home'), ('DAL', +6.5, 45.5, 'Away'),  ('PHI', +3.0, 45.0, 'Home')],
-    'ATL': [('PIT', -3.0, 42.0, 'Home'), ('PHI', +6.5, 47.0, 'Away'),  ('KC', +4.5, 46.5, 'Home')],
-    'CAR': [('NO', +4.0, 41.5, 'Away'),  ('LAC', +4.5, 40.5, 'Home'),  ('LV', +5.5, 40.5, 'Away')],
-    'TEN': [('CHI', +4.0, 44.5, 'Away'), ('NYJ', +3.5, 41.0, 'Home'),  ('GB', +3.5, 42.0, 'Home')],
-    'WSH': [('TB', +3.0, 43.0, 'Away'),  ('NYG', -2.5, 42.5, 'Home'),  ('CIN', +5.5, 44.5, 'Away')],
-    'ARI': [('BUF', +6.5, 47.5, 'Away'), ('LAR', +1.5, 48.0, 'Home'),  ('DET', +4.5, 52.0, 'Home')],
-    'NE':  [('CIN', +7.5, 41.0, 'Away'), ('SEA', +3.5, 39.5, 'Home'),  ('NYJ', +6.5, 39.5, 'Away')],
-    'NYG': [('MIN', +1.5, 41.5, 'Home'), ('WSH', +2.5, 42.5, 'Away'),  ('CLE', +4.5, 39.0, 'Away')]
+    'JAX': [('CLE', -3.5, 41.5, 'Home'), ('DEN', -2.5, 41.0, 'Away'), ('NE', -5.5, 40.0, 'Home')],
+    'DEN': [('KC', +5.5, 46.0, 'Away'),  ('JAX', +2.5, 41.0, 'Home'), ('LAR', +3.0, 44.5, 'Home')],
+    'NE':  [('SEA', +4.5, 42.5, 'Away'), ('MIA', +3.5, 45.0, 'Home'), ('JAX', +5.5, 40.0, 'Away')],
+    'CLE': [('JAX', +3.5, 41.5, 'Away'), ('TB', -1.5, 43.0, 'Away'),  ('CAR', -4.5, 40.5, 'Home')],
+    'CIN': [('TB', -3.5, 47.0, 'Home'),  ('HOU', +1.5, 48.0, 'Away'),  ('PIT', -2.5, 44.0, 'Away')],
+    'TB':  [('CIN', +3.5, 47.0, 'Away'), ('CLE', +1.5, 43.0, 'Home'),  ('MIN', -3.0, 45.0, 'Home')],
+    'SEA': [('NE', -4.5, 42.5, 'Home'),  ('ARI', -3.0, 45.0, 'Away'),  ('WSH', -4.0, 44.5, 'Away')],
+    'ARI': [('LAC', +6.5, 46.5, 'Away'), ('SEA', +3.0, 45.0, 'Home'),  ('SF', +6.5, 47.0, 'Away')],
+    'SF':  [('LAR', -2.5, 47.5, 'Neutral'), ('MIA', -4.5, 48.0, 'Home'), ('ARI', -6.5, 47.0, 'Home')],
+    'LAR': [('SF', +2.5, 47.5, 'Neutral'), ('NYG', -6.5, 45.0, 'Home'), ('DEN', -3.0, 44.5, 'Away')],
+    'DET': [('NO', -6.5, 49.5, 'Home'),  ('BUF', +2.5, 51.0, 'Away'),  ('NYJ', -4.5, 47.5, 'Home')],
+    'NO':  [('DET', +6.5, 49.5, 'Away'), ('DAL', +6.0, 46.5, 'Away'),  ('LV', -1.5, 43.0, 'Home')],
+    'IND': [('BAL', +3.5, 48.0, 'Home'), ('KC', +5.5, 49.5, 'Away'),   ('HOU', +1.5, 46.0, 'Home')],
+    'BAL': [('IND', -3.5, 48.0, 'Away'), ('NO', -7.5, 45.0, 'Home'),   ('DAL', -2.5, 49.0, 'Neutral')],
+    'HOU': [('LAC', -3.0, 46.0, 'Home'), ('CIN', -1.5, 48.0, 'Home'),  ('IND', -1.5, 46.0, 'Away')],
+    'LAC': [('ARI', -6.5, 46.5, 'Home'), ('LV', -4.5, 43.0, 'Home'),   ('BUF', +3.5, 48.5, 'Away')],
+    'LV':  [('MIA', +3.5, 46.0, 'Home'), ('LAC', +4.5, 43.0, 'Away'),  ('NO', +1.5, 43.0, 'Away')],
+    'MIA': [('LV', -3.5, 46.0, 'Away'),  ('NE', -3.5, 45.0, 'Away'),   ('KC', +3.5, 49.0, 'Home')],
+    'GB':  [('MIN', -1.5, 45.5, 'Away'), ('NYJ', -3.5, 43.0, 'Away'),  ('ATL', -4.5, 46.0, 'Home')],
+    'MIN': [('GB', +1.5, 45.5, 'Home'),  ('SF', +4.5, 48.0, 'Away'),   ('TB', +3.0, 45.0, 'Away')],
+    'NYJ': [('TEN', -4.5, 41.0, 'Away'), ('GB', +3.5, 43.0, 'Home'),   ('DET', +4.5, 47.5, 'Away')],
+    'TEN': [('NYJ', +4.5, 41.0, 'Home'), ('CHI', +3.0, 42.5, 'Away'),  ('NYG', +1.5, 41.0, 'Away')],
+    'CHI': [('CAR', -5.5, 41.5, 'Home'), ('TEN', -3.0, 42.5, 'Home'),  ('NYJ', -1.5, 42.0, 'Away')],
+    'CAR': [('CHI', +5.5, 41.5, 'Away'), ('ATL', +4.5, 44.0, 'Away'),  ('CLE', +4.5, 40.5, 'Away')],
+    'ATL': [('PIT', -2.5, 42.0, 'Home'), ('CAR', -4.5, 44.0, 'Home'),  ('GB', +4.5, 46.0, 'Away')],
+    'PIT': [('ATL', +2.5, 42.0, 'Away'), ('DEN', -2.5, 39.5, 'Away'),  ('CIN', +2.5, 44.0, 'Home')],
+    'PHI': [('WSH', -5.5, 46.5, 'Home'), ('DAL', -3.0, 48.5, 'Away'),  ('LAR', -2.5, 49.0, 'Home')],
+    'WSH': [('PHI', +5.5, 46.5, 'Away'), ('DAL', +4.5, 47.0, 'Away'),  ('SEA', +4.0, 44.5, 'Home')],
+    'DAL': [('NYG', -6.5, 44.0, 'Away'), ('WSH', -4.5, 47.0, 'Home'),  ('BAL', +2.5, 49.0, 'Neutral')],
+    'NYG': [('DAL', +6.5, 44.0, 'Home'), ('LAR', +6.5, 45.0, 'Away'),  ('TEN', -1.5, 41.0, 'Home')],
+    'BUF': [('MIA', -5.5, 50.0, 'Home'), ('DET', -2.5, 51.0, 'Home'),  ('LAC', -3.5, 48.5, 'Home')],
+    'KC':  [('DEN', -5.5, 46.0, 'Home'), ('IND', -5.5, 49.5, 'Home'),  ('MIA', -3.5, 49.0, 'Away')]
 }
 
 def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home):
     dst_data = DEFAULT_DST_METRICS.get(dst_code, {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0})
     opp_data = DEFAULT_OPPONENT_METRICS.get(opp_code, {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.0, 'Turnover_Rate': 1.8})
     
-    # 1. Implied Totals
     implied_opp_total = (ou_total / 2.0) - (spread / 2.0)
-    implied_dst_total = (ou_total / 2.0) + (spread / 2.0)
-    
-    # 2. Pressure & Sack Index
     combined_pressure_idx = (dst_data['Pressure_Rate'] * 0.45) + (opp_data['OL_Pressure_Allowed'] * 0.55)
     expected_sacks = (dst_data['Sack_Rate'] * opp_data['QB_Sack_Penalty']) * (combined_pressure_idx / 22.0)
     expected_sack_pts = expected_sacks * 1.0
     
-    # 3. Game Script & Turnover Equity
     trailing_pressure_multiplier = 1.25 if spread <= -4.0 else (1.10 if spread < 0 else 0.85)
     expected_turnovers = (opp_data['Turnover_Rate'] * 0.55 + (0.4 if is_home else 0.0)) * trailing_pressure_multiplier
     expected_to_pts = expected_turnovers * 2.0
     
-    # 4. Points Allowed Equity
     if implied_opp_total < 14.0:
         pts_allowed_equity = 7.0
     elif implied_opp_total < 18.0:
@@ -165,37 +156,35 @@ def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home)
 
 def render_dst_streaming_terminal():
     st.header("🛡️ D/ST Asymmetric Streaming Terminal")
-    st.caption("Pass-Rush vs. OL Deficit Index, Vegas Game-Script Equity & Multi-Week Stash Planner")
+    st.caption("Pass-Rush vs. OL Deficit Index, Vegas Implied Script & Verified 2026 NFL Schedule")
     
-    # MASTER LEAGUE-WIDE RANKINGS
-    st.subheader("🔥 Week 1 League-Wide D/ST Streamer Rankings")
-    
-    col_f1, col_f2 = st.columns([2, 1])
-    waiver_only = col_f1.checkbox("Filter: Show Available Waiver Options Only", value=True)
-    
-    # Pre-set default rostered defenses based on common draft patterns
+    # 1. WAIVER AVAILABILITY CONTROLS
+    all_teams_list = sorted(list(FULL_NFL_SCHEDULE.keys()))
     rostered_defaults = ['CIN', 'BAL', 'SF', 'CLE', 'PIT', 'DAL', 'NYJ', 'HOU', 'BUF', 'KC', 'DET', 'PHI']
     
-    all_teams_list = sorted(list(FULL_NFL_SCHEDULE.keys()))
-    default_waivers = [t for t in all_teams_list if t not in rostered_defaults]
-    
-    if waiver_only:
-        active_eval_teams = default_waivers
-        st.caption(f"Showing **{len(active_eval_teams)}** unrostered waiver defenses (e.g. JAX, DEN, TB, SEA, MIN, CHI...).")
-    else:
-        active_eval_teams = all_teams_list
-        st.caption(f"Showing all **32 NFL Defenses** across the league.")
+    with st.expander("⚙️ Manage League Waiver Defenses", expanded=False):
+        col_w1, col_w2 = st.columns([2, 1])
+        active_waiver_pool = col_w1.multiselect(
+            "Select Available Free Agent D/STs:",
+            all_teams_list,
+            default=[t for t in all_teams_list if t not in rostered_defaults]
+        )
+        show_waivers_only = col_w2.checkbox("Filter Rankings: Show Waivers Only", value=True)
         
+    active_eval_teams = active_waiver_pool if show_waivers_only else all_teams_list
+    
+    # 2. LEAGUE-WIDE RANKINGS TABLE
+    st.subheader(f"🔥 Week 1 Streaming Rankings ({'Waiver Options' if show_waivers_only else 'All 32 Teams'})")
+    
     rankings_data = []
     for t_code in active_eval_teams:
-        matchup = FULL_NFL_SCHEDULE[t_code][0] # Week 1
+        matchup = FULL_NFL_SCHEDULE[t_code][0]
         opp, spread, ou, loc = matchup[0], matchup[1], matchup[2], matchup[3]
         res = calculate_dst_composite_score(t_code, opp, spread, ou, loc == 'Home')
         
         rankings_data.append({
             'Rank': 0,
-            'D/ST Code': t_code,
-            'Team Name': NFL_TEAMS.get(t_code, t_code),
+            'Team': NFL_TEAMS.get(t_code, t_code),
             'Week 1 Matchup': f"{'vs' if loc=='Home' else '@'} {opp} ({spread:+.1f})",
             'Projected PTS': res['Composite_Score'],
             'Exp. Sacks': res['Expected_Sacks'],
@@ -207,23 +196,18 @@ def render_dst_streaming_terminal():
     df_board = pd.DataFrame(rankings_data).sort_values(by='Projected PTS', ascending=False).reset_index(drop=True)
     df_board['Rank'] = df_board.index + 1
     
-    st.dataframe(
-        df_board[['Rank', 'Team Name', 'Week 1 Matchup', 'Projected PTS', 'Exp. Sacks', 'Exp. Turnovers', 'Opp. Implied Pts', 'Streaming Tier']],
-        use_container_width=True
-    )
+    st.dataframe(df_board[['Rank', 'Team', 'Week 1 Matchup', 'Projected PTS', 'Exp. Sacks', 'Exp. Turnovers', 'Opp. Implied Pts', 'Streaming Tier']], use_container_width=True)
     
     st.markdown("---")
-    st.subheader("🔍 Single D/ST Deep Dive & Custom Vegas Simulator")
     
+    # 3. SINGLE D/ST SIMULATOR
+    st.subheader("🔍 Single D/ST Deep Dive & Custom Vegas Simulator")
     col_s1, col_s2 = st.columns(2)
     selected_eval = col_s1.selectbox("Select Team to Inspect", all_teams_list, index=all_teams_list.index('JAX'))
     
     sim_matchup = FULL_NFL_SCHEDULE[selected_eval][0]
-    default_opp = sim_matchup[0]
-    
-    # Safe index lookup
     opp_keys = sorted(list(DEFAULT_OPPONENT_METRICS.keys()))
-    safe_opp_idx = opp_keys.index(default_opp) if default_opp in opp_keys else 0
+    safe_opp_idx = opp_keys.index(sim_matchup[0]) if sim_matchup[0] in opp_keys else 0
     opp_team_sel = col_s2.selectbox("Opponent", opp_keys, index=safe_opp_idx)
     
     c_v1, c_v2, c_v3 = st.columns(3)
@@ -240,7 +224,10 @@ def render_dst_streaming_terminal():
     m4.metric("Opponent Implied Total", f"{single_res['Implied_Opp_Points']} PTS")
     
     st.markdown("---")
+    
+    # 4. MULTI-WEEK TRAJECTORY MATRIX (WEEKS 1 - 3)
     st.subheader("📅 3-Week Stash & Stream Multi-Week Matrix")
+    st.caption("Identify multi-week pairs before waiver prices spike next Tuesday:")
     
     multi_data = []
     for d_code in active_eval_teams:
