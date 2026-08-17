@@ -49,41 +49,40 @@ DEFAULT_DST_METRICS = {
 }
 
 DEFAULT_OPPONENT_METRICS = {
-    'NYG': {'OL_Pressure_Allowed': 30.2, 'QB_Sack_Penalty': 1.40, 'Turnover_Rate': 2.7},
-    'NE':  {'OL_Pressure_Allowed': 29.0, 'QB_Sack_Penalty': 1.35, 'Turnover_Rate': 2.5},
-    'CAR': {'OL_Pressure_Allowed': 28.0, 'QB_Sack_Penalty': 1.30, 'Turnover_Rate': 2.6},
-    'CLE': {'OL_Pressure_Allowed': 27.5, 'QB_Sack_Penalty': 1.25, 'Turnover_Rate': 2.4},
-    'TEN': {'OL_Pressure_Allowed': 26.5, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.2},
-    'WSH': {'OL_Pressure_Allowed': 25.8, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.3},
-    'LV':  {'OL_Pressure_Allowed': 25.0, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 2.1},
-    'ARI': {'OL_Pressure_Allowed': 24.5, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 2.0},
-    'DEN': {'OL_Pressure_Allowed': 24.0, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.9},
-    'SEA': {'OL_Pressure_Allowed': 24.2, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.9},
-    'NO':  {'OL_Pressure_Allowed': 23.5, 'QB_Sack_Penalty': 1.05, 'Turnover_Rate': 1.8},
-    'TB':  {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.00, 'Turnover_Rate': 1.8},
-    'CHI': {'OL_Pressure_Allowed': 24.8, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 2.1},
-    'MIN': {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.05, 'Turnover_Rate': 1.8},
-    'ATL': {'OL_Pressure_Allowed': 22.0, 'QB_Sack_Penalty': 1.00, 'Turnover_Rate': 1.7},
-    'LAC': {'OL_Pressure_Allowed': 21.5, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.6},
-    'PIT': {'OL_Pressure_Allowed': 22.8, 'QB_Sack_Penalty': 1.05, 'Turnover_Rate': 1.8},
-    'JAX': {'OL_Pressure_Allowed': 21.0, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.6},
-    'MIA': {'OL_Pressure_Allowed': 20.5, 'QB_Sack_Penalty': 0.90, 'Turnover_Rate': 1.5},
-    'IND': {'OL_Pressure_Allowed': 19.5, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.4},
-    'LAR': {'OL_Pressure_Allowed': 20.0, 'QB_Sack_Penalty': 0.90, 'Turnover_Rate': 1.5},
-    'CIN': {'OL_Pressure_Allowed': 21.0, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.5},
-    'GB':  {'OL_Pressure_Allowed': 18.5, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.3},
-    'HOU': {'OL_Pressure_Allowed': 19.0, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.4},
-    'DAL': {'OL_Pressure_Allowed': 18.0, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.3},
-    'SF':  {'OL_Pressure_Allowed': 18.2, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.3},
-    'BAL': {'OL_Pressure_Allowed': 17.5, 'QB_Sack_Penalty': 0.75, 'Turnover_Rate': 1.2},
-    'BUF': {'OL_Pressure_Allowed': 18.0, 'QB_Sack_Penalty': 0.75, 'Turnover_Rate': 1.3},
+    'NYG': {'OL_Pressure_Allowed': 30.2, 'QB_Sack_Penalty': 1.30, 'Turnover_Rate': 2.2},
+    'NE':  {'OL_Pressure_Allowed': 29.0, 'QB_Sack_Penalty': 1.25, 'Turnover_Rate': 2.0},
+    'CAR': {'OL_Pressure_Allowed': 28.0, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.1},
+    'CLE': {'OL_Pressure_Allowed': 27.5, 'QB_Sack_Penalty': 1.20, 'Turnover_Rate': 2.0},
+    'TEN': {'OL_Pressure_Allowed': 26.5, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 1.9},
+    'WSH': {'OL_Pressure_Allowed': 25.8, 'QB_Sack_Penalty': 1.15, 'Turnover_Rate': 1.9},
+    'LV':  {'OL_Pressure_Allowed': 25.0, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.8},
+    'ARI': {'OL_Pressure_Allowed': 24.5, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.7},
+    'DEN': {'OL_Pressure_Allowed': 24.0, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.7},
+    'SEA': {'OL_Pressure_Allowed': 24.2, 'QB_Sack_Penalty': 1.05, 'Turnover_Rate': 1.7},
+    'NO':  {'OL_Pressure_Allowed': 23.5, 'QB_Sack_Penalty': 1.05, 'Turnover_Rate': 1.6},
+    'TB':  {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.00, 'Turnover_Rate': 1.6},
+    'CHI': {'OL_Pressure_Allowed': 24.8, 'QB_Sack_Penalty': 1.10, 'Turnover_Rate': 1.8},
+    'MIN': {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.00, 'Turnover_Rate': 1.6},
+    'ATL': {'OL_Pressure_Allowed': 22.0, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.5},
+    'LAC': {'OL_Pressure_Allowed': 21.5, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.5},
+    'PIT': {'OL_Pressure_Allowed': 22.8, 'QB_Sack_Penalty': 1.00, 'Turnover_Rate': 1.6},
+    'JAX': {'OL_Pressure_Allowed': 21.0, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.5},
+    'MIA': {'OL_Pressure_Allowed': 20.5, 'QB_Sack_Penalty': 0.90, 'Turnover_Rate': 1.4},
+    'IND': {'OL_Pressure_Allowed': 19.5, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.3},
+    'LAR': {'OL_Pressure_Allowed': 20.0, 'QB_Sack_Penalty': 0.90, 'Turnover_Rate': 1.4},
+    'CIN': {'OL_Pressure_Allowed': 21.0, 'QB_Sack_Penalty': 0.95, 'Turnover_Rate': 1.4},
+    'GB':  {'OL_Pressure_Allowed': 18.5, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.2},
+    'HOU': {'OL_Pressure_Allowed': 19.0, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.3},
+    'DAL': {'OL_Pressure_Allowed': 18.0, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.2},
+    'SF':  {'OL_Pressure_Allowed': 18.2, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.2},
+    'BAL': {'OL_Pressure_Allowed': 17.5, 'QB_Sack_Penalty': 0.75, 'Turnover_Rate': 1.1},
+    'BUF': {'OL_Pressure_Allowed': 18.0, 'QB_Sack_Penalty': 0.75, 'Turnover_Rate': 1.2},
     'KC':  {'OL_Pressure_Allowed': 17.0, 'QB_Sack_Penalty': 0.70, 'Turnover_Rate': 1.0},
-    'PHI': {'OL_Pressure_Allowed': 16.8, 'QB_Sack_Penalty': 0.80, 'Turnover_Rate': 1.2},
-    'DET': {'OL_Pressure_Allowed': 15.5, 'QB_Sack_Penalty': 0.75, 'Turnover_Rate': 1.1},
-    'NYJ': {'OL_Pressure_Allowed': 19.5, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.4}
+    'PHI': {'OL_Pressure_Allowed': 16.8, 'QB_Sack_Penalty': 0.75, 'Turnover_Rate': 1.1},
+    'DET': {'OL_Pressure_Allowed': 15.5, 'QB_Sack_Penalty': 0.70, 'Turnover_Rate': 1.0},
+    'NYJ': {'OL_Pressure_Allowed': 19.5, 'QB_Sack_Penalty': 0.85, 'Turnover_Rate': 1.3}
 }
 
-# VERIFIED OFFICIAL 2026 NFL REGULAR SEASON SCHEDULE (WEEKS 1, 2, 3)
 FULL_NFL_SCHEDULE = {
     'JAX': [('CLE', -3.5, 41.5, 'Home'), ('DEN', -2.5, 41.0, 'Away'), ('NE', -5.5, 40.0, 'Home')],
     'DEN': [('KC', +5.5, 46.0, 'Away'),  ('JAX', +2.5, 41.0, 'Home'), ('LAR', +3.0, 44.5, 'Home')],
@@ -121,17 +120,23 @@ FULL_NFL_SCHEDULE = {
 
 def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home):
     dst_data = DEFAULT_DST_METRICS.get(dst_code, {'Pressure_Rate': 22.0, 'Sack_Rate': 6.5, 'Blitz_Rate': 25.0})
-    opp_data = DEFAULT_OPPONENT_METRICS.get(opp_code, {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.0, 'Turnover_Rate': 1.8})
+    opp_data = DEFAULT_OPPONENT_METRICS.get(opp_code, {'OL_Pressure_Allowed': 23.0, 'QB_Sack_Penalty': 1.0, 'Turnover_Rate': 1.6})
     
+    # 1. Implied Vegas Totals
     implied_opp_total = (ou_total / 2.0) - (spread / 2.0)
+    
+    # 2. Corrected Sack Model (Scaled to ~35 passing dropbacks per game)
     combined_pressure_idx = (dst_data['Pressure_Rate'] * 0.45) + (opp_data['OL_Pressure_Allowed'] * 0.55)
-    expected_sacks = (dst_data['Sack_Rate'] * opp_data['QB_Sack_Penalty']) * (combined_pressure_idx / 22.0)
+    base_sacks = (dst_data['Sack_Rate'] / 100.0) * 35.0  # e.g., 8.1% * 35 = ~2.8 sacks
+    expected_sacks = base_sacks * opp_data['QB_Sack_Penalty'] * (combined_pressure_idx / 23.0)
     expected_sack_pts = expected_sacks * 1.0
     
-    trailing_pressure_multiplier = 1.25 if spread <= -4.0 else (1.10 if spread < 0 else 0.85)
-    expected_turnovers = (opp_data['Turnover_Rate'] * 0.55 + (0.4 if is_home else 0.0)) * trailing_pressure_multiplier
+    # 3. Game Script & Turnover Equity
+    trailing_mult = 1.20 if spread <= -4.0 else (1.10 if spread < 0 else 0.90)
+    expected_turnovers = ((opp_data['Turnover_Rate'] * 0.65) + (0.3 if is_home else 0.0)) * trailing_mult
     expected_to_pts = expected_turnovers * 2.0
     
+    # 4. Points Allowed Equity
     if implied_opp_total < 14.0:
         pts_allowed_equity = 7.0
     elif implied_opp_total < 18.0:
@@ -143,7 +148,7 @@ def calculate_dst_composite_score(dst_code, opp_code, spread, ou_total, is_home)
     else:
         pts_allowed_equity = 0.0
         
-    td_equity = (expected_turnovers * 0.08) * 6.0
+    td_equity = (expected_turnovers * 0.06) * 6.0
     composite_raw = expected_sack_pts + expected_to_pts + pts_allowed_equity + td_equity
     
     return {
@@ -158,7 +163,6 @@ def render_dst_streaming_terminal():
     st.header("🛡️ D/ST Asymmetric Streaming Terminal")
     st.caption("Pass-Rush vs. OL Deficit Index, Vegas Implied Script & Verified 2026 NFL Schedule")
     
-    # 1. WAIVER AVAILABILITY CONTROLS
     all_teams_list = sorted(list(FULL_NFL_SCHEDULE.keys()))
     rostered_defaults = ['CIN', 'BAL', 'SF', 'CLE', 'PIT', 'DAL', 'NYJ', 'HOU', 'BUF', 'KC', 'DET', 'PHI']
     
@@ -173,7 +177,6 @@ def render_dst_streaming_terminal():
         
     active_eval_teams = active_waiver_pool if show_waivers_only else all_teams_list
     
-    # 2. LEAGUE-WIDE RANKINGS TABLE
     st.subheader(f"🔥 Week 1 Streaming Rankings ({'Waiver Options' if show_waivers_only else 'All 32 Teams'})")
     
     rankings_data = []
@@ -200,7 +203,6 @@ def render_dst_streaming_terminal():
     
     st.markdown("---")
     
-    # 3. SINGLE D/ST SIMULATOR
     st.subheader("🔍 Single D/ST Deep Dive & Custom Vegas Simulator")
     col_s1, col_s2 = st.columns(2)
     selected_eval = col_s1.selectbox("Select Team to Inspect", all_teams_list, index=all_teams_list.index('JAX'))
@@ -225,7 +227,6 @@ def render_dst_streaming_terminal():
     
     st.markdown("---")
     
-    # 4. MULTI-WEEK TRAJECTORY MATRIX (WEEKS 1 - 3)
     st.subheader("📅 3-Week Stash & Stream Multi-Week Matrix")
     st.caption("Identify multi-week pairs before waiver prices spike next Tuesday:")
     
