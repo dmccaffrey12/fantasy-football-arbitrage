@@ -22,7 +22,7 @@ NFL_NAME_TO_CODE = {
 
 NFL_TEAMS = {v: k for k, v in NFL_NAME_TO_CODE.items()}
 
-# 2026 IN-SEASON TRADE VALUE DATABASE (SUPERFLEX & 6-PT PASS TD CALIBRATED)
+# EXPANDED TRADE DATABASE (SUPERFLEX & 6-PT PASS TD CALIBRATED)
 TRADE_DATABASE = {
     # Quarterbacks
     'Josh Allen': {'Pos': 'QB', 'Team': 'BUF', 'Value': 94.0, 'Proj_PPG': 25.2},
@@ -43,6 +43,8 @@ TRADE_DATABASE = {
     'Bo Nix': {'Pos': 'QB', 'Team': 'DEN', 'Value': 67.0, 'Proj_PPG': 17.8},
     'Baker Mayfield': {'Pos': 'QB', 'Team': 'TB', 'Value': 65.0, 'Proj_PPG': 17.2},
     'Matthew Stafford': {'Pos': 'QB', 'Team': 'LAR', 'Value': 63.5, 'Proj_PPG': 16.8},
+    'Daniel Jones': {'Pos': 'QB', 'Team': 'IND', 'Value': 54.0, 'Proj_PPG': 14.5},
+    'Malik Willis': {'Pos': 'QB', 'Team': 'MIA', 'Value': 45.0, 'Proj_PPG': 11.8},
     
     # Running Backs
     'Bijan Robinson': {'Pos': 'RB', 'Team': 'ATL', 'Value': 95.0, 'Proj_PPG': 19.8},
@@ -60,11 +62,15 @@ TRADE_DATABASE = {
     'Derrick Henry': {'Pos': 'RB', 'Team': 'BAL', 'Value': 68.5, 'Proj_PPG': 13.5},
     'James Cook III': {'Pos': 'RB', 'Team': 'BUF', 'Value': 67.0, 'Proj_PPG': 13.2},
     'Tony Pollard': {'Pos': 'RB', 'Team': 'TEN', 'Value': 58.0, 'Proj_PPG': 11.6},
-    'RJ Harvey': {'Pos': 'RB', 'Team': 'DEN', 'Value': 54.0, 'Proj_PPG': 10.8},
-    'Jonah Coleman': {'Pos': 'RB', 'Team': 'DEN', 'Value': 48.0, 'Proj_PPG': 9.8},
     'D\'Andre Swift': {'Pos': 'RB', 'Team': 'CHI', 'Value': 55.0, 'Proj_PPG': 11.0},
+    'RJ Harvey': {'Pos': 'RB', 'Team': 'DEN', 'Value': 54.0, 'Proj_PPG': 10.8},
     'Rhamondre Stevenson': {'Pos': 'RB', 'Team': 'NE', 'Value': 52.0, 'Proj_PPG': 10.4},
+    'Kyle Monangai': {'Pos': 'RB', 'Team': 'CHI', 'Value': 49.0, 'Proj_PPG': 9.8},
     'Jaylen Warren': {'Pos': 'RB', 'Team': 'PIT', 'Value': 49.0, 'Proj_PPG': 9.9},
+    'Jonah Coleman': {'Pos': 'RB', 'Team': 'DEN', 'Value': 48.0, 'Proj_PPG': 9.5},
+    'Chuba Hubbard': {'Pos': 'RB', 'Team': 'CAR', 'Value': 47.0, 'Proj_PPG': 9.2},
+    'Rico Dowdle': {'Pos': 'RB', 'Team': 'PIT', 'Value': 46.0, 'Proj_PPG': 9.0},
+    'Rachaad White': {'Pos': 'RB', 'Team': 'WSH', 'Value': 45.0, 'Proj_PPG': 8.8},
     
     # Wide Receivers
     'CeeDee Lamb': {'Pos': 'WR', 'Team': 'DAL', 'Value': 96.0, 'Proj_PPG': 19.5},
@@ -91,6 +97,7 @@ TRADE_DATABASE = {
     'Wan\'Dale Robinson': {'Pos': 'WR', 'Team': 'TEN', 'Value': 54.0, 'Proj_PPG': 10.5},
     'Josh Downs': {'Pos': 'WR', 'Team': 'IND', 'Value': 51.0, 'Proj_PPG': 10.0},
     'Jayden Higgins': {'Pos': 'WR', 'Team': 'HOU', 'Value': 47.0, 'Proj_PPG': 9.2},
+    'Jalen Coker': {'Pos': 'WR', 'Team': 'CAR', 'Value': 46.0, 'Proj_PPG': 9.1},
     'Jalen McMillan': {'Pos': 'WR', 'Team': 'TB', 'Value': 45.0, 'Proj_PPG': 8.8},
     'Chris Bell': {'Pos': 'WR', 'Team': 'MIA', 'Value': 38.0, 'Proj_PPG': 7.5},
     
@@ -440,26 +447,22 @@ with tabs[3]:
     st.caption("Superflex True VORP Index & Multi-Player Package Calculator")
     
     player_pool = sorted(list(TRADE_DATABASE.keys()))
-    
     col_t1, col_t2 = st.columns(2)
     
     with col_t1:
         st.subheader("📤 You Send (Giving Away)")
-        giving_players = st.multiselect("Select Player(s) to Trade Away:", player_pool, default=['Tony Pollard'])
+        giving_players = st.multiselect("Select Player(s) to Trade Away:", player_pool, default=['RJ Harvey', 'Jonah Coleman'])
         
     with col_t2:
         st.subheader("📥 You Receive (Getting Back)")
-        receiving_players = st.multiselect("Select Player(s) to Receive:", player_pool, default=['Malik Nabers'])
+        receiving_players = st.multiselect("Select Player(s) to Receive:", player_pool, default=['Kyle Monangai', 'Jalen Coker'])
         
     if giving_players or receiving_players:
         giving_val = sum([TRADE_DATABASE[p]['Value'] for p in giving_players])
         receiving_val = sum([TRADE_DATABASE[p]['Value'] for p in receiving_players])
-        
         giving_ppg = sum([TRADE_DATABASE[p]['Proj_PPG'] for p in giving_players])
         receiving_ppg = sum([TRADE_DATABASE[p]['Proj_PPG'] for p in receiving_players])
         
-        # Package Roster Spot Adjustment (Penalty for receiving fewer concentrated assets)
-        # e.g., 2 players for 1 elite player has an inherent roster consolidation premium
         if len(giving_players) > len(receiving_players):
             consolidation_bonus = (len(giving_players) - len(receiving_players)) * 5.0
             receiving_val_adj = receiving_val + consolidation_bonus
@@ -482,19 +485,18 @@ with tabs[3]:
         m4.metric("Net Weekly PPG Impact", f"{net_ppg_diff:+} PPG")
         
         if net_value_diff >= 12.0:
-            st.success("🟢 **TRADE VERDICT: SMASH ACCEPT.** You are capturing massive True VORP surplus. Highly advantageous trade.")
+            st.success("🟢 **TRADE VERDICT: SMASH ACCEPT.** You are capturing massive True VORP surplus.")
         elif net_value_diff >= 3.0:
             st.success("🟢 **TRADE VERDICT: WIN (FAVORABLE).** Strong trade that improves your starting lineup efficiency.")
         elif net_value_diff >= -4.0:
-            st.info("🔵 **TRADE VERDICT: FAIR (WIN-WIN).** Even trade on paper. Make the deal if it addresses specific roster bye-week/depth needs.")
+            st.info("🔵 **TRADE VERDICT: FAIR (WIN-WIN).** Even trade on paper.")
         elif net_value_diff >= -12.0:
-            st.warning("🟡 **TRADE VERDICT: LEAN REJECT (ASK FOR SWEETENER).** You are giving up slightly more value than you receive.")
+            st.warning("🟡 **TRADE VERDICT: LEAN REJECT (ASK FOR SWEETENER).** You are giving up more value than you receive.")
         else:
             st.error("🔴 **TRADE VERDICT: LOPSIDED REJECT.** You are giving away significant asset value without adequate return.")
             
         st.markdown("---")
         st.subheader("📋 Asset Details Involved")
-        
         col_g, col_r = st.columns(2)
         with col_g:
             st.write("**You Give:**")
